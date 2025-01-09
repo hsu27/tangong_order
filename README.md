@@ -22,11 +22,4 @@ return {"Hello": "FastAPI"}
 uvicorn main:app  --reload --host 0.0.0.0 --port 8000
 ```
 
-uvicorn main:app --reload
-啟動應用程式並啟用 **自動重新載入** 功能。
-
-uvicorn main:app  --reload --host 0.0.0.0 --port 8000
-啟動應用程式並指定 **主機地址** 和 **埠號**
-   
-uvicorn main:app --port 8000
-啟動應用程式並指定埠號，主機默認為 `127.0.0.1`
+測試頁面 : http://{IPv4_address}:8000/upload
