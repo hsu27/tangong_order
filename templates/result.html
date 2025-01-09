@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <title>預測結果</title>
+</head>
+
+<body>
+    <h2>預測結果 - 使用模型：{{ model }}</h2>
+
+    <h3>資料結果：</h3>
+    <ul>
+        {% for item in result_data %}
+        <li>日期: {{ item.date }}，數值: <strong>{{ item.value }}</strong></li>
+        {% endfor %}
+    </ul>
+
+    <br>
+
+    <form action="/upload">
+        <button type="submit">返回上傳頁面</button>
+    </form>
+</body>
+
+</html>

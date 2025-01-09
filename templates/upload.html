@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <title>檔案上傳</title>
+</head>
+
+<body>
+    <!-- value 名稱要與檔案名稱相同 ex: arima_model.py -->
+    <h2>請上傳您的 Excel 檔案並選擇模型</h2>
+    <form action="/predict" enctype="multipart/form-data" method="post">
+        <input type="file" name="file" required><br><br>
+        <label for="model">選擇模型：</label>
+        <select name="model" id="model">
+            <option value="xgboost">XGBoost</option>
+            <option value="lstm">LSTM</option>
+            <option value="arima">ARIMA</option>
+            <option value="sarima">SARIMA</option>
+            <option value="arima_grid">ARIMA Grid Search(時間較長)</option>
+            <option value="sarima_grid">SARIMA Grid Search(時間較長)</option>
+        </select><br><br>
+        <button type="submit">上傳並預測</button>
+    </form>
+</body>
+
+</html>
