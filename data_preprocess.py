@@ -3,6 +3,10 @@ from io import BytesIO
 import numpy as np
 from fastapi import UploadFile, HTTPException
 from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import train_test_split, KFold
+
+
+target = 'order'
 
 def process_excel(file: UploadFile, required_columns=('date', 'order')):
     """
@@ -29,7 +33,7 @@ def process_excel(file: UploadFile, required_columns=('date', 'order')):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Excel 文件處理失敗: {e}")
 
-def preprocess_data(df, remove_last=3, column='order'):
+def preprocess_data(df, remove_last=3):
     """
     通用的數據處理函數，包括去除最後幾筆資料和標準化。
     :param df: 輸入 DataFrame
@@ -39,24 +43,15 @@ def preprocess_data(df, remove_last=3, column='order'):
     """
     if remove_last > 0:
         df = df[:-remove_last]
+    # 特徵欄位生成
+    df = feature_create(df)
 
     # 獲取數據並進行標準化
-    data = df[column].values.reshape(-1, 1)
+    nonScaled_data = df[target].values.reshape(-1, 1)
     scaler = StandardScaler()
-    scaled_data = scaler.fit_transform(data)
+    scaled_data = scaler.fit_transform(nonScaled_data)
 
-    return df, scaled_data, scaler
-
-def split_data(data, test_volume=10):
-    """
-    將數據分割為訓練集和驗證集。
-    :param data: 輸入數據（1D 或 2D）
-    :param test_volume: 驗證集大小
-    :return: 訓練集, 驗證集
-    """
-    train_data = data[:-test_volume]
-    valid_data = data[-test_volume:]
-    return train_data, valid_data
+    return df, scaled_data, nonScaled_data, scaler
 
 def extract_last_records(df, column_date='date', column_value='order', tail=3):
     """
@@ -87,3 +82,52 @@ def create_dataset(data, time_step, forecast_horizon, skip_step):
         X.append(data[i:(i + time_step), 0])
         Y.append(data[i + time_step + skip_step:i + time_step + skip_step + forecast_horizon, 0])
     return np.array(X), np.array(Y)
+
+def split_data(data, test_volume=10):
+    """
+    將數據分割為訓練集和驗證集。
+    :param data: 輸入數據（1D 或 2D）
+    :param test_volume: 驗證集大小
+    :return: 訓練集, 驗證集
+    """
+    train_data = data[:-test_volume]
+    valid_data = data[-test_volume:]
+
+    return train_data, valid_data
+
+# 資料特徵工程
+## 日期轉換為特徵欄位
+def feature_create(df):
+    # Extract year and month as separate columns
+    df['year'] = df['date'].dt.year
+    df['month'] = df['date'].dt.month
+
+    # Add a column for the cyclical transformation of the month
+    df['month_sin'] = np.sin(2 * np.pi * df['month'] / 12)
+    df['month_cos'] = np.cos(2 * np.pi * df['month'] / 12)
+
+    return df
+
+## 資料切分
+def split_x_y(df):
+    # Split each class dataset into train and test sets (8:2 ratio)
+    # train, test = train_test_split(data[features_high_corr], test_size=0.2, random_state=42, shuffle=False)
+    X_train, X_test, y_train, y_test = train_test_split(df[feature_col(df)], df[target], test_size=0.2, random_state=42, shuffle=True)
+    
+    X_train = X_train.reset_index(drop=True)
+    y_train = y_train.reset_index(drop=True)
+    X_test = X_test.reset_index(drop=True)
+    y_test = y_test.reset_index(drop=True)
+    
+    return [X_train,y_train], [X_test,y_test]
+
+## 特徵欄位取相關性最大兩值
+def feature_col(df):
+
+    df[target] = df[target].astype(float)
+
+    correlation = df.corr()
+
+    features_high_corr = list(correlation[target].abs().sort_values(ascending=False).iloc[1:3].index)
+
+    return features_high_corr
