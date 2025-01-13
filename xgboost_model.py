@@ -16,4 +16,6 @@ def predict(X, Y, scaler):
     last_test_prediction = scaler.inverse_transform(last_test_prediction.reshape(-1, 1))
 
     print(f"last_test_prediction:{last_test_prediction}")
+    
+    print(float(last_test_prediction),type(last_test_prediction))
     return float(last_test_prediction[0][0])

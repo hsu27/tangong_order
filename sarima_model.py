@@ -14,7 +14,7 @@ def sarima_objective(params, train, valid, TEST_VOLUME, s):
         model = SARIMAX(train, order=(p, d, q), seasonal_order=(P, D, Q, s))
         results = model.fit(disp=False)
         forecast = results.forecast(steps=TEST_VOLUME)
-        mse = mean_squared_error(valid, forecast)
+        mse = mean_absolute_error(valid, forecast)
         return mse
     except:
         return float('inf')  # 若模型無法訓練，則返回極大值

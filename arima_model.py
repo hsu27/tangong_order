@@ -14,8 +14,9 @@ def predict(train_data, valid_data, TEST_VOLUME, skip_step):
 
     # 驗證集測試
     forecast = results.forecast(steps=TEST_VOLUME)
-    mse = mean_squared_error(valid_data, forecast)
+    mse = mean_absolute_error(valid_data, forecast)
 
+    print(mse)
     # 預測
     forecast = results.forecast(steps=TEST_VOLUME) 
     print(forecast)
