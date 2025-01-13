@@ -28,7 +28,44 @@ uvicorn main:app  --reload --host 0.0.0.0 --port 8000
 
 FASTAPI 說明文件 : http://192.168.22.20:6001/docs#/
 
-寫入資料欄位
+寫入資料欄位 cus_abbr 改成 cus_code
 ![資料欄位說明](https://github.com/user-attachments/assets/4e37746c-a9ca-4227-b28c-ee9247819f8d)
 
-
+寫入資料範例 (一次三筆預測值)
+```json
+[
+    {
+        "date": "2024-01",
+        "weight": 75.5,
+        "item_type": "B",
+        "cus_code": "ABC",
+        "mg": "CG",
+        "sp_size": 10.5,
+        "sp_size2": 20.0,
+        "model": "M-001",
+        "error": 0.5
+    },
+    {
+        "date": "2024-01",
+        "weight": 75.5,
+        "item_type": "B",
+        "cus_code": "ABC",
+        "mg": "CG",
+        "sp_size": 10.5,
+        "sp_size2": 20.0,
+        "model": "M-001",
+        "error": 0.5
+    },
+    {
+        "date": "2024-01",
+        "weight": 75.5,
+        "item_type": "B",
+        "cus_code": "ABC",
+        "mg": "CG",
+        "sp_size": 10.5,
+        "sp_size2": 20.0,
+        "model": "M-001",
+        "error": 0.5
+    }
+]
+```
