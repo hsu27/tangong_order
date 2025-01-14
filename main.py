@@ -76,11 +76,11 @@ async def predict(request: Request, file: UploadFile = File(...), model: str = F
 
             # 各模型傳入參數
             model_params = {
-                # "xgboost": (train_data, valid_data, scaler),   # ok
-                # "lstm": (train_data, valid_data, scaler, time_step, forecast_horizon, EPOCH, BATCH_SIZE),   # ok
-                # "arima": (train_data, valid_data, forecast_horizon, skip_step, grid),   # ok
-                # "sarima": (train_data, valid_data, forecast_horizon, skip_step),   # ok
-                # "stacking": (train_data, valid_data, feature_col(df), df['date'].iloc[-1] + relativedelta(months=skip_step + 1)),   # ok
+                "xgboost": (train_data, valid_data, scaler),   # ok
+                "lstm": (train_data, valid_data, scaler, time_step, forecast_horizon, EPOCH, BATCH_SIZE),   # ok
+                "arima": (train_data, valid_data, forecast_horizon, skip_step, grid),   # ok
+                "sarima": (train_data, valid_data, forecast_horizon, skip_step),   # ok
+                "stacking": (train_data, valid_data, feature_col(df), df['date'].iloc[-1] + relativedelta(months=skip_step + 1)),   # ok
                 "tabnet": (train_data, valid_data, feature_col(df), df['date'].iloc[-1] + relativedelta(months=skip_step + 1))   # ok
                 # DeepAR
                 # NGBoost 算誤差區間
