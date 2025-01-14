@@ -122,7 +122,12 @@ def predict(train_data, valid_data, TEST_VOLUME, skip_step):
     best_model_fit = best_model.fit(disp=False)  
     # 若需更高收斂，可考慮: best_model.fit(disp=False, maxiter=300, method='powell')
 
-    print(TEST_VOLUME, len(valid_data[0]))
+    forecast = best_model_fit.forecast(
+        steps=len(valid_data[0]),
+        exog=valid_data[0]
+    )
+    mae = mean_absolute_error(valid_data[1], forecast)
+
     #=== (d) 多步預測 (steps=TEST_VOLUME)，外生變數請傳對應的 X_valid
     forecast = best_model_fit.forecast(
         steps=TEST_VOLUME,
@@ -137,4 +142,4 @@ def predict(train_data, valid_data, TEST_VOLUME, skip_step):
         skip_step = TEST_VOLUME - 1
 
     print(f"results.forecast[{skip_step}]: {forecast.values[skip_step]}")
-    return forecast.values[skip_step]
+    return forecast.values[skip_step], mae

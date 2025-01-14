@@ -152,17 +152,12 @@ def predict(train_data, valid_data, scale, time_step, forecast_horizon, EPOCH=20
     #==============================
     model.eval()
     with torch.no_grad():
-        train_pred = model(X_train)  # (num_samples_train, 6)
         valid_pred = model(X_valid)  # (num_samples_valid, 6)
 
-    train_mae = mean_absolute_error(
-        Y_train.cpu().numpy(), train_pred.cpu().numpy()
-    )
     valid_mae = mean_absolute_error(
         Y_valid.cpu().numpy(), valid_pred.cpu().numpy()
     )
-    print(f"Train MAE: {train_mae:.4f}")
-    print(f"Valid MAE: {valid_mae:.4f}")
+    # print(f"Valid MAE: {valid_mae:.4f}")
 
     #==============================
     # 10) Out-of-sample 預測範例
@@ -174,4 +169,4 @@ def predict(train_data, valid_data, scale, time_step, forecast_horizon, EPOCH=20
     print(f"last_test_prediction (6 步): {last_test_prediction[0]}")
     
     # 回傳第一步預測值
-    return float(last_test_prediction[0][0])
+    return float(last_test_prediction[0][0]), valid_mae

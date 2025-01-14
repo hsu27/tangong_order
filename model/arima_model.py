@@ -46,7 +46,7 @@ def predict(train_data, valid_data, forecast_steps=6, skip_step=0, grid=False):
         print(f"results.forecast[{skip_step}]: {forecast.values[skip_step]}")
 
         # 回傳單一步的預測值 (float)
-        return float(forecast.values[skip_step])
+        return float(forecast.values[skip_step]), mae
     else:
         return predict_with_grid_search(train_data, valid_data, forecast_steps=6, skip_step=0)
 
@@ -90,15 +90,17 @@ def predict_with_grid_search(train_data, valid_data, forecast_steps=6, skip_step
     # 用最佳參數建立最終模型
     model = ARIMA(train_data[1], order=best_order)
     results = model.fit()
+
+    forecast = results.forecast(steps=len(valid_data[0]))
+    mae = mean_absolute_error(valid_data[1], forecast)
+
     forecast = results.forecast(steps=forecast_steps)
-    compare_len = min(forecast_steps, len(valid_data[1]))
-    final_mae = mean_absolute_error(valid_data[1][:compare_len], forecast[:compare_len])
-    print(f"Final MAE with best order: {final_mae:.4f}")
+    # compare_len = min(forecast_steps, len(valid_data[1]))
+    # final_mae = mean_absolute_error(valid_data[1][:compare_len], forecast[:compare_len])
+    # print(f"Final MAE with best order: {final_mae:.4f}")
 
     # skip_step 超界檢查
     if skip_step < 0 or skip_step >= forecast_steps:
         skip_step = forecast_steps - 1
 
-    # 輸出指定預測值
-    print(f"results.forecast[{skip_step}]: {forecast.values[skip_step]}")
-    return float(forecast.values[skip_step])
+    return float(forecast.values[skip_step]), mae

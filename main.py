@@ -55,6 +55,8 @@ async def predict(request: Request, file: UploadFile = File(...), model: str = F
 
         # 預測結果字典
         result_data = []
+        # mae 比較
+        best_mae = float('inf')  # 初始設為無窮大，便於比較
 
         # 取原始資料的最後三筆資料
         last_three_records = extract_last_records(df, tail=3)
@@ -74,26 +76,30 @@ async def predict(request: Request, file: UploadFile = File(...), model: str = F
 
             # 各模型傳入參數
             model_params = {
-                "xgboost": (train_data, valid_data, scaler),   # ok
-                "lstm": (train_data, valid_data, scaler, time_step, forecast_horizon, EPOCH, BATCH_SIZE),   # ok
-                "arima": (train_data, valid_data, forecast_horizon, skip_step, grid),   # ok
-                "sarima": (train_data, valid_data, forecast_horizon, skip_step),   # ok
-                "stacking": (train_data, valid_data, feature_col(df), df['date'].iloc[-1] + relativedelta(months=skip_step + 1))   # ok
+                # "xgboost": (train_data, valid_data, scaler),   # ok
+                # "lstm": (train_data, valid_data, scaler, time_step, forecast_horizon, EPOCH, BATCH_SIZE),   # ok
+                # "arima": (train_data, valid_data, forecast_horizon, skip_step, grid),   # ok
+                # "sarima": (train_data, valid_data, forecast_horizon, skip_step),   # ok
+                # "stacking": (train_data, valid_data, feature_col(df), df['date'].iloc[-1] + relativedelta(months=skip_step + 1)),   # ok
+                "tabnet": (train_data, valid_data, feature_col(df), df['date'].iloc[-1] + relativedelta(months=skip_step + 1))   # ok
                 # DeepAR
-                # TabNet
                 # NGBoost 算誤差區間
             }
 
             if 'all' in model:
                 grid = True
+                mae = float('inf')
                 predicted_value = dict()
                 for model_type in model_module:
                     if model_type in model_params:
-                        raw_predict = model_module[model_type].predict(*model_params[model_type])
+                        raw_predict, mae = model_module[model_type].predict(*model_params[model_type])
                         if isinstance(raw_predict, np.ndarray):  # 如果是 array，提取第一個元素
                             predicted_value[model_type] = raw_predict.item()
                         else:
                             predicted_value[model_type] = raw_predict
+                        if mae < best_mae:
+                            best_mae = mae
+                            best_model = model_type
 
             # 動態導入模型並進行預測
             elif model in model_params:
@@ -110,7 +116,7 @@ async def predict(request: Request, file: UploadFile = File(...), model: str = F
             # 預測日期為原始數據最後一筆日期後
             predict_date = df['date'].iloc[-1] + relativedelta(months=skip_step + 1)  
 
-            result_data.append({"date": predict_date.strftime("%Y-%m"), "value": predicted_value})
+            result_data.append({"date": predict_date.strftime("%Y-%m"), "best_model": best_model, "value": predicted_value[best_model]})
 
         print(type(result_data))
         print(result_data)

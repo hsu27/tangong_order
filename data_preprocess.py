@@ -83,18 +83,6 @@ def create_dataset(data, time_step, forecast_horizon, skip_step):
         Y.append(data[i + time_step + skip_step:i + time_step + skip_step + forecast_horizon, 0])
     return np.array(X), np.array(Y)
 
-def split_data(data, test_volume=10):
-    """
-    將數據分割為訓練集和驗證集。
-    :param data: 輸入數據（1D 或 2D）
-    :param test_volume: 驗證集大小
-    :return: 訓練集, 驗證集
-    """
-    train_data = data[:-test_volume]
-    valid_data = data[-test_volume:]
-
-    return train_data, valid_data
-
 # 資料特徵工程
 ## 日期轉換為特徵欄位
 def feature_create(df):

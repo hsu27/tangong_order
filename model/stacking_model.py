@@ -141,7 +141,6 @@ def predict(train_data, valid_data, feature_cols, predict_date):
     # Make predictions and evaluate
     predictions = stacked_model.predict(valid_data[0])
     mae = mean_absolute_error(valid_data[1], predictions)
-    print(f"Mean Absolute Error: {mae}")
 
     target_year = predict_date.year
     target_month = predict_date.month
@@ -158,4 +157,4 @@ def predict(train_data, valid_data, feature_cols, predict_date):
     # Make predictions and evaluate
     predictions = stacked_model.predict(feature_data)
 
-    return predictions
+    return predictions.item(), mae
