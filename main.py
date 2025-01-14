@@ -104,17 +104,17 @@ async def predict(request: Request, file: UploadFile = File(...), model: str = F
             # 動態導入模型並進行預測
             elif model in model_params:
                 # print(*model_params[model])
-                predicted_value = model_module.predict(*model_params[model])
+                predicted_value = model_module[model].predict(*model_params[model])
                 if isinstance(predicted_value, np.ndarray):  # 如果是 array，提取第一個元素
                     predicted_value = predicted_value.item()
             elif grid == True:
                 if model.split('_')[0] in model_params:
-                    predicted_value = model_module.predict(*model_params[model.split('_')[0]])
+                    predicted_value = model_module[model].predict(*model_params[model.split('_')[0]])
             else:
                 raise ValueError("Unknown model type")
 
             # 預測日期為原始數據最後一筆日期後
-            predict_date = df['date'].iloc[-1] + relativedelta(months=skip_step + 1)  
+            predict_date = df['date'].iloc[-1] + relativedelta(months=skip_step + 1)
 
             result_data.append({"date": predict_date.strftime("%Y-%m"), "best_model": best_model, "value": predicted_value[best_model]})
 
