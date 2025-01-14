@@ -39,11 +39,8 @@ async def upload_form(request: Request):
 # 預測端點
 @app.post("/predict", response_class=JSONResponse)
 async def predict(request: Request, file: UploadFile = File(...), model: str = Form(...)):
-    print(f'model:{model}')
     if not file.filename.endswith('.xlsx'):
         raise HTTPException(status_code=400, detail="上傳的檔案必須為 Excel 格式 (.xlsx)")
-    # if not os.path.exists(f"{model}_model.py"):
-    #     raise FileNotFoundError(f"檔案 {model}_model.py 不存在，請確認檔案名稱及路徑。")
     
     try:
         # 處理 Excel 資料並縮放
@@ -61,9 +58,12 @@ async def predict(request: Request, file: UploadFile = File(...), model: str = F
 
         # 取原始資料的最後三筆資料
         last_three_records = extract_last_records(df, tail=3)
-
+        # 定義導入搜尋字典
+        model_module = dict()
+        for model_type in os.listdir("./model"):
+            if model_type.endswith(".py"):
+                model_module[(model_type.removesuffix(".py")).split('_')[0]] = importlib.import_module(f".{model_type.removesuffix('.py')}", package="model")
         # 載入模型
-        model_module = importlib.import_module(f".{model}_model", package="model")
         if 'grid' in model:
             grid = True
         else :
@@ -71,26 +71,32 @@ async def predict(request: Request, file: UploadFile = File(...), model: str = F
 
         # 分別計算 skip_step = 0, 1, 2 的結果
         for skip_step in range(3):
-            # # 建立資料集
-            # X, Y = create_dataset(nonScaled_data, time_step, forecast_horizon, skip_step)
 
             # 各模型傳入參數
             model_params = {
-                "all": (),
                 "xgboost": (train_data, valid_data, scaler),   # ok
                 "lstm": (train_data, valid_data, scaler, time_step, forecast_horizon, EPOCH, BATCH_SIZE),   # ok
-                "arima": (train_data, valid_data, forecast_horizon, skip_step, grid),   # bug
-                "sarima": (train_data, valid_data, forecast_horizon, skip_step, grid),   # 還未寫
-                # "arima_grid": (train_data, valid_data, forecast_horizon, skip_step),
-                # "sarima_grid": (train_data, valid_data, TEST_VOLUME, skip_step),
+                "arima": (train_data, valid_data, forecast_horizon, skip_step, grid),   # ok
+                "sarima": (train_data, valid_data, forecast_horizon, skip_step),   # ok
                 "stacking": (train_data, valid_data, feature_col(df), df['date'].iloc[-1] + relativedelta(months=skip_step + 1))   # ok
                 # DeepAR
                 # TabNet
                 # NGBoost 算誤差區間
             }
 
+            if 'all' in model:
+                grid = True
+                predicted_value = dict()
+                for model_type in model_module:
+                    if model_type in model_params:
+                        raw_predict = model_module[model_type].predict(*model_params[model_type])
+                        if isinstance(raw_predict, np.ndarray):  # 如果是 array，提取第一個元素
+                            predicted_value[model_type] = raw_predict.item()
+                        else:
+                            predicted_value[model_type] = raw_predict
+
             # 動態導入模型並進行預測
-            if model in model_params:
+            elif model in model_params:
                 # print(*model_params[model])
                 predicted_value = model_module.predict(*model_params[model])
                 if isinstance(predicted_value, np.ndarray):  # 如果是 array，提取第一個元素

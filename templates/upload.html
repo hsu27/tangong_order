@@ -13,12 +13,12 @@
         <input type="file" name="file" required><br><br>
         <label for="model">選擇模型：</label>
         <select name="model" id="model">
+            <option value="all">all model</option>
             <option value="xgboost">XGBoost</option>
             <option value="lstm">LSTM</option>
             <option value="arima">ARIMA</option>
-            <option value="sarima">SARIMA</option>
-            <option value="arima_grid">ARIMA Grid Search(時間較長)</option>
-            <option value="sarima_grid">SARIMA Grid Search(時間較長)</option>
+            <option value="sarima">SARIMA Grid Search</option>
+            <option value="arima_grid">ARIMA Grid Search</option>
             <option value="stacking">stacking</option>
         </select><br><br>
         <button type="submit">上傳並預測</button>
