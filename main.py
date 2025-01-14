@@ -9,6 +9,7 @@ from dateutil.relativedelta import relativedelta
 from fastapi.middleware.cors import CORSMiddleware
 import sys
 from data_preprocess import *
+from data_output import *
 
 app = FastAPI()
 # uvicorn main:app --reload
@@ -41,7 +42,9 @@ async def upload_form(request: Request):
 async def predict(request: Request, file: UploadFile = File(...), model: str = Form(...)):
     if not file.filename.endswith('.xlsx'):
         raise HTTPException(status_code=400, detail="上傳的檔案必須為 Excel 格式 (.xlsx)")
-    
+    # 初始化紀錄檔
+    log_df = log_create()
+
     try:
         # 處理 Excel 資料並縮放
         df = process_excel(file)
@@ -86,6 +89,10 @@ async def predict(request: Request, file: UploadFile = File(...), model: str = F
                 # NGBoost 算誤差區間
             }
 
+            # 預測日期為原始數據最後一筆日期後
+            predict_date = df['date'].iloc[-1] + relativedelta(months=skip_step + 1)
+            true_value = df[df['date'] == predict_date]['order']
+
             mae = float('inf')
             predicted_value = dict()
             if 'all' in model:
@@ -100,6 +107,7 @@ async def predict(request: Request, file: UploadFile = File(...), model: str = F
                         if mae < best_mae:
                             best_mae = mae
                             best_model = model_type
+                    log_df = log_append(log_df, model_type, predict_date.strftime("%Y-%m"), predicted_value[model_type], true_value, mae)
 
             # 動態導入模型並進行預測
             elif model in model_params:
@@ -109,6 +117,8 @@ async def predict(request: Request, file: UploadFile = File(...), model: str = F
                     predicted_value[model] = raw_predict.item()
                 else:
                     predicted_value[model] = raw_predict
+                print([record['order'] for record in last_three_records if record['date'] == predict_date])
+                log_df = log_append(log_df, model, predict_date.strftime("%Y-%m"), predicted_value[model], true_value, mae)
             elif grid == True:
                 if model.split('_')[0] in model_params:
                     raw_predict, mae = model_module[model].predict(*model_params[model])
@@ -117,16 +127,16 @@ async def predict(request: Request, file: UploadFile = File(...), model: str = F
                     predicted_value[model] = raw_predict.item()
                 else:
                     predicted_value[model] = raw_predict
+                log_df = log_append(log_df, model, predict_date.strftime("%Y-%m"), predicted_value[model], true_value, mae)
             else:
                 raise ValueError("Unknown model type")
 
-            # 預測日期為原始數據最後一筆日期後
-            predict_date = df['date'].iloc[-1] + relativedelta(months=skip_step + 1)
 
             result_data.append({"date": predict_date.strftime("%Y-%m"), "best_model": best_model, "value": predicted_value[best_model]})
 
         print(type(result_data))
         print(result_data)
+        log_save(log_df)
         # 返回 JSON 格式的結果結構
         return JSONResponse(content=result_data)
     
