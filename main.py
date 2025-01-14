@@ -90,8 +90,9 @@ async def predict(request: Request, file: UploadFile = File(...), model: str = F
             }
 
             # 預測日期為原始數據最後一筆日期後
-            predict_date = df['date'].iloc[-1] + relativedelta(months=skip_step + 1)
-            true_value = df[df['date'] == predict_date]['order']
+            # predict_date = df['date'].iloc[-1] + relativedelta(months=skip_step + 1)
+            predict_date = df['date'].iloc[-1]
+            true_value = df[df['date'] == predict_date]['order'].iloc[0]
 
             mae = float('inf')
             predicted_value = dict()
