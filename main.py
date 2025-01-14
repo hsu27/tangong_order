@@ -86,10 +86,10 @@ async def predict(request: Request, file: UploadFile = File(...), model: str = F
                 # NGBoost 算誤差區間
             }
 
+            mae = float('inf')
+            predicted_value = dict()
             if 'all' in model:
                 grid = True
-                mae = float('inf')
-                predicted_value = dict()
                 for model_type in model_module:
                     if model_type in model_params:
                         raw_predict, mae = model_module[model_type].predict(*model_params[model_type])
@@ -103,13 +103,20 @@ async def predict(request: Request, file: UploadFile = File(...), model: str = F
 
             # 動態導入模型並進行預測
             elif model in model_params:
-                # print(*model_params[model])
-                predicted_value = model_module[model].predict(*model_params[model])
-                if isinstance(predicted_value, np.ndarray):  # 如果是 array，提取第一個元素
-                    predicted_value = predicted_value.item()
+                raw_predict, mae = model_module[model].predict(*model_params[model])
+                best_model = model
+                if isinstance(raw_predict, np.ndarray):  # 如果是 array，提取第一個元素
+                    predicted_value[model] = raw_predict.item()
+                else:
+                    predicted_value[model] = raw_predict
             elif grid == True:
                 if model.split('_')[0] in model_params:
-                    predicted_value = model_module[model].predict(*model_params[model.split('_')[0]])
+                    raw_predict, mae = model_module[model].predict(*model_params[model])
+                    best_model = model
+                if isinstance(raw_predict, np.ndarray):  # 如果是 array，提取第一個元素
+                    predicted_value[model] = raw_predict.item()
+                else:
+                    predicted_value[model] = raw_predict
             else:
                 raise ValueError("Unknown model type")
 
