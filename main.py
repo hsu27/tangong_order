@@ -47,9 +47,9 @@ async def predict(request: Request, file: UploadFile = File(...), model: str = F
 
     try:
         # 處理 Excel 資料並縮放
-        df = process_excel(file)
+        raw_df = process_excel(file)
 
-        df, scaled_data, nonScaled_data, scaler = preprocess_data(df, 3)
+        df, scaled_data, nonScaled_data, scaler = preprocess_data(raw_df, 3)
 
         # 訓練集跟驗證集
         # TEST_VOLUME = 10 # 從資料集拿幾筆出來做驗證
@@ -74,6 +74,7 @@ async def predict(request: Request, file: UploadFile = File(...), model: str = F
         else :
             grid = False
 
+        max_step = 3
         # 分別計算 skip_step = 0, 1, 2 的結果
         for skip_step in range(3):
 
@@ -90,9 +91,10 @@ async def predict(request: Request, file: UploadFile = File(...), model: str = F
             }
 
             # 預測日期為原始數據最後一筆日期後
-            # predict_date = df['date'].iloc[-1] + relativedelta(months=skip_step + 1)
-            predict_date = df['date'].iloc[-1]
-            true_value = df[df['date'] == predict_date]['order'].iloc[0]
+            # predict_date = df['date'].iloc[-1] + relativedelta(months=skip_step)
+            # predict_date = df['date'].iloc[-1] - relativedelta(months=skip_step)
+            predict_date = raw_df['date'].iloc[-(max_step-skip_step)]
+            true_value = raw_df[raw_df['date'] == predict_date]['order'].iloc[0]
 
             mae = float('inf')
             predicted_value = dict()
@@ -101,38 +103,26 @@ async def predict(request: Request, file: UploadFile = File(...), model: str = F
                 for model_type in model_module:
                     if model_type in model_params:
                         raw_predict, mae = model_module[model_type].predict(*model_params[model_type])
-                        if isinstance(raw_predict, np.ndarray):  # 如果是 array，提取第一個元素
-                            predicted_value[model_type] = raw_predict.item()
-                        else:
-                            predicted_value[model_type] = raw_predict
+                        predicted_value[model_type] = raw_predict
                         if mae < best_mae:
                             best_mae = mae
                             best_model = model_type
-                    log_df = log_append(log_df, model_type, predict_date.strftime("%Y-%m"), predicted_value[model_type], true_value, mae)
+                    log_df = log_append(log_df, model_type, predict_date.strftime("%Y-%m"), raw_predict, true_value, mae)
 
             # 動態導入模型並進行預測
             elif model in model_params:
                 raw_predict, mae = model_module[model].predict(*model_params[model])
                 best_model = model
-                if isinstance(raw_predict, np.ndarray):  # 如果是 array，提取第一個元素
-                    predicted_value[model] = raw_predict.item()
-                else:
-                    predicted_value[model] = raw_predict
-                print([record['order'] for record in last_three_records if record['date'] == predict_date])
-                log_df = log_append(log_df, model, predict_date.strftime("%Y-%m"), predicted_value[model], true_value, mae)
+                predicted_value[model] = raw_predict
+                log_df = log_append(log_df, model, predict_date.strftime("%Y-%m"), raw_predict, true_value, mae)
             elif grid == True:
                 if model.split('_')[0] in model_params:
                     raw_predict, mae = model_module[model].predict(*model_params[model])
                     best_model = model
-                if isinstance(raw_predict, np.ndarray):  # 如果是 array，提取第一個元素
-                    predicted_value[model] = raw_predict.item()
-                else:
                     predicted_value[model] = raw_predict
-                log_df = log_append(log_df, model, predict_date.strftime("%Y-%m"), predicted_value[model], true_value, mae)
+                    log_df = log_append(log_df, model, predict_date.strftime("%Y-%m"), raw_predict, true_value, mae)
             else:
                 raise ValueError("Unknown model type")
-
-
             result_data.append({"date": predict_date.strftime("%Y-%m"), "best_model": best_model, "value": predicted_value[best_model]})
 
         print(type(result_data))
