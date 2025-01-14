@@ -142,18 +142,7 @@ def predict(train_data, valid_data, feature_cols, predict_date):
     predictions = stacked_model.predict(valid_data[0])
     mae = mean_absolute_error(valid_data[1], predictions)
 
-    target_year = predict_date.year
-    target_month = predict_date.month
-    month_sin = np.sin(2 * np.pi * target_month / 12)
-    month_cos = np.cos(2 * np.pi * target_month / 12)
-    target_data = {
-    "year": [target_year],
-    "month": [target_month],
-    "month_sin": [month_sin],
-    "month_cos": [month_cos]
-    }
-    feature_data = {key: target_data[key] for key in feature_cols if key in target_data}
-    feature_data = pd.DataFrame(feature_data)
+    feature_data = predict_data(predict_date, feature_cols)
     # Make predictions and evaluate
     predictions = stacked_model.predict(feature_data)
 

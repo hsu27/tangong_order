@@ -78,23 +78,21 @@ async def predict(request: Request, file: UploadFile = File(...), model: str = F
         # 分別計算 skip_step = 0, 1, 2 的結果
         for skip_step in range(3):
 
+            # 預測日期為原始數據最後一筆日期後
+            predict_date = raw_df['date'].iloc[-(max_step-skip_step)]
+            true_value = raw_df[raw_df['date'] == predict_date]['order'].iloc[0]
+
             # 各模型傳入參數
             model_params = {
-                "xgboost": (train_data, valid_data, scaler),   # ok
+                "xgboost": (train_data, valid_data, predict_date, feature_col(df)),   # ok
                 "lstm": (train_data, valid_data, scaler, time_step, forecast_horizon, EPOCH, BATCH_SIZE),   # ok
                 "arima": (train_data, valid_data, forecast_horizon, skip_step, grid),   # ok
-                "sarima": (train_data, valid_data, forecast_horizon, skip_step),   # ok
-                "stacking": (train_data, valid_data, feature_col(df), df['date'].iloc[-1] + relativedelta(months=skip_step + 1)),   # ok
-                "tabnet": (train_data, valid_data, feature_col(df), df['date'].iloc[-1] + relativedelta(months=skip_step + 1))   # ok
+                "sarima": (train_data, valid_data, forecast_horizon, skip_step, predict_date, feature_col(df)),   # ok
+                "stacking": (train_data, valid_data, feature_col(df), predict_date),   # ok
+                "tabnet": (train_data, valid_data, feature_col(df), predict_date)   # ok
                 # DeepAR
                 # NGBoost 算誤差區間
             }
-
-            # 預測日期為原始數據最後一筆日期後
-            # predict_date = df['date'].iloc[-1] + relativedelta(months=skip_step)
-            # predict_date = df['date'].iloc[-1] - relativedelta(months=skip_step)
-            predict_date = raw_df['date'].iloc[-(max_step-skip_step)]
-            true_value = raw_df[raw_df['date'] == predict_date]['order'].iloc[0]
 
             mae = float('inf')
             predicted_value = dict()
@@ -127,7 +125,7 @@ async def predict(request: Request, file: UploadFile = File(...), model: str = F
 
         print(type(result_data))
         print(result_data)
-        log_save(log_df)
+        log_save(log_df, (file.filename).removesuffix(".xlsx").split('_'))
         # 返回 JSON 格式的結果結構
         return JSONResponse(content=result_data)
     

@@ -47,4 +47,4 @@ def predict(train_data, valid_data, feature_cols, predict_date):
     # Make predictions and evaluate
     predictions = model.predict(feature_data)
 
-    return predictions, mae
+    return predictions.item(), mae

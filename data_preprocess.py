@@ -119,3 +119,19 @@ def feature_col(df):
     features_high_corr = list(correlation[target].abs().sort_values(ascending=False).iloc[1:3].index)
 
     return features_high_corr
+
+def predict_data(predict_date, feature_cols):
+    target_year = predict_date.year
+    target_month = predict_date.month
+    month_sin = np.sin(2 * np.pi * target_month / 12)
+    month_cos = np.cos(2 * np.pi * target_month / 12)
+    target_data = {
+    "year": [target_year],
+    "month": [target_month],
+    "month_sin": [month_sin],
+    "month_cos": [month_cos]
+    }
+    feature_data = {key: target_data[key] for key in feature_cols if key in target_data}
+    feature_data = pd.DataFrame(feature_data)
+
+    return feature_data

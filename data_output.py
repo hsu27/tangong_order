@@ -29,12 +29,13 @@ def log_append(log_df, model_name, date, predict_value, true_value, mae):
 
     return log_df
 
-def log_save(log_df):
+def log_save(log_df, file_name):
+    file_name = f"{'_'.join(f for f in file_name)}"
     # Get the current date in YYYYMMDD format
     current_date = datetime.datetime.now().strftime('%Y%m%d')
 
     # Generate the file name
-    file_name = f"{current_date}_log.csv"
+    file_name = f"{current_date}_{file_name}_log.csv"
 
     # Define the full file path
     output_file_path = os.path.join('./log_data', file_name)

@@ -5,6 +5,8 @@ import pandas as pd
 import numpy as np
 from skopt import gp_minimize
 from skopt.space import Integer
+from data_preprocess import *
+
 
 #=== 1) 定義目標函數 (最小化 MAE) ============================================
 def sarima_objective(params, train_data, valid_data, TEST_VOLUME, s):
@@ -80,7 +82,7 @@ def optimize_sarima_bayesian(train_data, valid_data, TEST_VOLUME,
 
 
 #=== 3) 預測函式 =============================================================
-def predict(train_data, valid_data, TEST_VOLUME, skip_step):
+def predict(train_data, valid_data, TEST_VOLUME, skip_step, predict_date, feature_cols):
     """
     train_data = [X_train_df, y_train_series]
     valid_data = [X_valid_df, y_valid_series]
@@ -128,10 +130,11 @@ def predict(train_data, valid_data, TEST_VOLUME, skip_step):
     )
     mae = mean_absolute_error(valid_data[1], forecast)
 
+    feature_data = predict_data(predict_date, feature_cols)
     #=== (d) 多步預測 (steps=TEST_VOLUME)，外生變數請傳對應的 X_valid
     forecast = best_model_fit.forecast(
-        steps=TEST_VOLUME,
-        exog=valid_data[0][-TEST_VOLUME:]
+        steps=1,
+        exog=feature_data
     )
 
     #=== (e) 印出完整預測 & 指定步數值 ===
@@ -141,5 +144,5 @@ def predict(train_data, valid_data, TEST_VOLUME, skip_step):
     if not (0 <= skip_step < TEST_VOLUME):
         skip_step = TEST_VOLUME - 1
 
-    print(f"results.forecast[{skip_step}]: {forecast.values[skip_step]}")
-    return forecast.values[skip_step], mae
+
+    return forecast.values[0], mae
