@@ -33,6 +33,20 @@ def process_excel(file: UploadFile, required_columns=('date', 'order')):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Excel 文件處理失敗: {e}")
 
+def process_csv(file: UploadFile, required_columns=('date', 'order')):
+    content = file.file.read()
+    csv_data = BytesIO(content)
+    data = pd.read_csv(csv_data)
+    # 確認是否包含必要欄位
+    missing_columns = [col for col in required_columns if col not in data.columns]
+    if missing_columns:
+        raise ValueError(f"缺少必要欄位: {', '.join(missing_columns)}")
+
+    # 轉換日期格式
+    data['date'] = pd.to_datetime(data['date'])
+
+    return data
+
 def preprocess_data(df, remove_last=3):
     """
     通用的數據處理函數，包括去除最後幾筆資料和標準化。

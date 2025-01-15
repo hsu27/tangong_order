@@ -49,7 +49,7 @@ def load_or_fetch_json(url, filename):
         return data
 
 if __name__ == '__main__':
-    output_folder = 'output_folder'
+    output_folder = './data'
     os.makedirs(output_folder, exist_ok=True)
 
     # API URL

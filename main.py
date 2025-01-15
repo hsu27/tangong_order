@@ -7,6 +7,8 @@ import numpy as np
 from fastapi.middleware.cors import CORSMiddleware
 from data_preprocess import *
 from data_output import *
+from API import post
+from API import get_data
 
 app = FastAPI()
 # uvicorn main:app --reload
@@ -34,17 +36,44 @@ TEST_VOLUME = 6 # 從資料集拿幾筆出來做驗證
 async def upload_form(request: Request):
     return templates.TemplateResponse("upload.html", {"request": request})
 
+# 直接使用 API 傳值
+@app.get("/predict_api", response_class=JSONResponse)
+async def call_predict():
+    dir_path = './data'
+    # 遍歷目錄中的所有 CSV 文件
+    for file in os.listdir(dir_path):
+        if file.endswith(".csv"):
+            file_path = os.path.join(dir_path, file)
+
+            # 讀取文件並模擬 UploadFile
+            with open(file_path, "rb") as f:
+                file_content = f.read()
+                read_file = UploadFile(filename=file, file=BytesIO(file_content))
+
+                # 呼叫 predict 函數
+                request = Request(scope={"type": "http"})  # 模擬 Request
+                response = await predict(request, read_file, model = 'all_model')
+                
+    # 結束後返回 upload.html 表單頁面
+    return templates.TemplateResponse("upload.html", {"request": request})
+
 # 預測端點
 @app.post("/predict", response_class=JSONResponse)
 async def predict(request: Request, file: UploadFile = File(...), model: str = Form(...)):
-    if not file.filename.endswith('.xlsx'):
+    if not file.filename.endswith('.xlsx') or not file.filename.endswith('.csv'):
         raise HTTPException(status_code=400, detail="上傳的檔案必須為 Excel 格式 (.xlsx)")
     # 初始化紀錄檔
     log_df = log_create()
+    # 取得預測日期
+    predict_date= post.get_predict_date()
 
     try:
-        # 處理 Excel 資料並縮放
-        raw_df = process_excel(file)
+        if file.filename.endswith('.xlsx'):
+            # 處理 Excel 資料
+            raw_df = process_excel(file)
+        else:
+            # 從 API 取得 csv 資料
+            raw_df = process_csv(file)
 
         df, scaled_data, nonScaled_data, scaler = preprocess_data(raw_df, 3)
 
@@ -73,18 +102,20 @@ async def predict(request: Request, file: UploadFile = File(...), model: str = F
         for skip_step in range(3):
 
             # 預測日期為原始數據最後一筆日期後
-            predict_date = raw_df['date'].iloc[-(max_step-skip_step)]
-            true_value = raw_df[raw_df['date'] == predict_date]['order'].iloc[0]
+            # predict_date = raw_df['date'].iloc[-(max_step-skip_step)]
+            # true_value = raw_df[raw_df['date'] == predict_date]['order'].iloc[0]
+            true_value = 0
+            date = predict_date[skip_step]
 
             # 各模型傳入參數
             model_params = {
-                "xgboost": (train_data, valid_data, predict_date, feature_col(df)),   # ok
+                "xgboost": (train_data, valid_data, date, feature_col(df)),   # ok
                 "lstm": (train_data, valid_data, time_step, forecast_horizon, EPOCH, BATCH_SIZE),   # ok
                 "arima": (train_data, valid_data, forecast_horizon, skip_step, grid),   # ok
-                "sarima": (train_data, valid_data, forecast_horizon, skip_step, predict_date, feature_col(df)),   # ok
-                "stacking": (train_data, valid_data, feature_col(df), predict_date),   # ok
-                "tabnet": (train_data, valid_data, feature_col(df), predict_date),   # ok
-                "arima-mix-xgboost": (train_data, valid_data, feature_col(df), predict_date)
+                "sarima": (train_data, valid_data, forecast_horizon, skip_step, date, feature_col(df)),   # ok
+                "stacking": (train_data, valid_data, feature_col(df), date),   # ok
+                "tabnet": (train_data, valid_data, feature_col(df), date),   # ok
+                "arima-mix-xgboost": (train_data, valid_data, feature_col(df), date)
                 # DeepAR
                 # NGBoost 算誤差區間
             }
@@ -100,25 +131,26 @@ async def predict(request: Request, file: UploadFile = File(...), model: str = F
                         if mae < best_mae:
                             best_mae = mae
                             best_model = model_type
-                    log_df = log_append(log_df, model_type, predict_date.strftime("%Y-%m"), raw_predict, true_value, mae)
+                    log_df = log_append(log_df, model_type, date.strftime("%Y-%m"), raw_predict, true_value, mae)
 
             # 動態導入模型並進行預測
             elif model in model_params and grid == True:
                 raw_predict, mae = model_module[model].predict(*model_params[model])
                 best_model = model
                 predicted_value[model] = raw_predict
-                log_df = log_append(log_df, model, predict_date.strftime("%Y-%m"), raw_predict, true_value, mae)
+                log_df = log_append(log_df, model, date.strftime("%Y-%m"), raw_predict, true_value, mae)
             elif model in model_params:
                 if model.split('_')[0] in model_params:
                     raw_predict, mae = model_module[model].predict(*model_params[model])
                     best_model = model
                     predicted_value[model] = raw_predict
-                    log_df = log_append(log_df, model, predict_date.strftime("%Y-%m"), raw_predict, true_value, mae)
-            result_data.append({"date": predict_date.strftime("%Y-%m"), "best_model": best_model, "value": predicted_value[best_model]})
+                    log_df = log_append(log_df, model, date.strftime("%Y-%m"), raw_predict, true_value, mae)
+            result_data.append({"date": date.strftime("%Y-%m"), "best_model": best_model, "value": predicted_value[best_model]})
 
-        print(type(result_data))
-        print(result_data)
         log_save(log_df, (file.filename).removesuffix(".xlsx").split('_'))
+
+        # post data to API
+        post.post_data(result_data)
         # 返回 JSON 格式的結果結構
         return JSONResponse(content=result_data)
     
