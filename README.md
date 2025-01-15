@@ -13,11 +13,13 @@
   <a href="https://github.com/martinhsieh586" target="_blank">Author</a>
 </p>
 
-<br>
+***
 
 ## About ##
 
 > 通過多種模型預測訂單數量，以期評估生產量是否符合預期。
+
+***
 
 ## Features ##
 
@@ -31,6 +33,8 @@
   - <a href="./model/arima-mix-xgboost.py">arima mix xgboost</a>
 - autoML function：
   - 在下拉式選單中選擇 `all model` 選項，會自動找出所有模型中評估出的最佳結果，並將結果顯示在網頁上。
+
+***
 
 ## Requirements ##
 
@@ -46,6 +50,8 @@ $ cd tankong_order_predict
 $ pip install -r requirements.txt
 ```
 
+***
+
 ## Starting ##
 
 ```bash
@@ -54,6 +60,8 @@ $ cd tankong_order_predict
 # Run the project
 $ uvicorn main:app --reload
 ```
+
+***
 
 ### 操作方法 ###
 
@@ -67,6 +75,8 @@ $ uvicorn main:app --reload
   - 訂單資料：`xlsx 檔案`，須包含下列欄位：  
     > `date`：訂單日期  
     > `order`：採購重量
+
+<br> </br>
 
 <a href="#top">Back to top</a>
 
