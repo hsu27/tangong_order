@@ -69,3 +69,5 @@ $ uvicorn main:app --reload
     > `order`：採購重量
 
 <a href="#top">Back to top</a>
+
+<!-- use ctrl+shift+V to view this markdown on vscode -->
