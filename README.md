@@ -33,7 +33,18 @@
   - <a href="./model/arima-mix-xgboost.py">arima mix xgboost</a>
 - autoML function：
   - 在下拉式選單中選擇 `all model` 選項，會自動找出所有模型中評估出的最佳結果，並將結果顯示在網頁上。
+- useage：
+  - api：
 
+    ```bash
+    # 取得 api 資料，並更新於本地端
+    $ pyhon get_data.py
+    # 預測並回傳結果回 api
+    $ pyhon main.py
+    ```
+  
+  - web
+  
 ***
 
 ## Requirements ##
