@@ -37,11 +37,10 @@ def log_save(log_df, file_name):
     # Generate the file name
     file_name = f"{current_date}_{file_name}_log.csv"
 
+    print(file_name)
     # Define the full file path
-    output_file_path = os.path.join('./log_data', file_name)
+    output_file_path = os.path.join('./log_data/', file_name)
+    print(output_file_path)
 
     # Save the DataFrame to a CSV file
     log_df.to_csv(output_file_path, index=False, encoding='utf-8-sig')
-
-    # Return the file path
-    return output_file_path

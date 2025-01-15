@@ -1,13 +1,10 @@
 from fastapi import FastAPI, UploadFile, File, HTTPException, Form, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
-import pandas as pd
 import importlib
 import os
 import numpy as np
-from dateutil.relativedelta import relativedelta
 from fastapi.middleware.cors import CORSMiddleware
-import sys
 from data_preprocess import *
 from data_output import *
 
@@ -52,17 +49,14 @@ async def predict(request: Request, file: UploadFile = File(...), model: str = F
         df, scaled_data, nonScaled_data, scaler = preprocess_data(raw_df, 3)
 
         # 訓練集跟驗證集
-        # TEST_VOLUME = 10 # 從資料集拿幾筆出來做驗證
-        # train_data, valid_data = split_data(df['order'], TEST_VOLUME)
         train_data, valid_data = split_x_y(df)
 
         # 預測結果字典
         result_data = []
-        # mae 比較
+        # mae 比較, 最佳模型保存
         best_mae = float('inf')  # 初始設為無窮大，便於比較
+        best_model = None
 
-        # 取原始資料的最後三筆資料
-        last_three_records = extract_last_records(df, tail=3)
         # 定義導入搜尋字典
         model_module = dict()
         for model_type in os.listdir("./model"):
@@ -85,11 +79,12 @@ async def predict(request: Request, file: UploadFile = File(...), model: str = F
             # 各模型傳入參數
             model_params = {
                 "xgboost": (train_data, valid_data, predict_date, feature_col(df)),   # ok
-                "lstm": (train_data, valid_data, scaler, time_step, forecast_horizon, EPOCH, BATCH_SIZE),   # ok
+                "lstm": (train_data, valid_data, time_step, forecast_horizon, EPOCH, BATCH_SIZE),   # ok
                 "arima": (train_data, valid_data, forecast_horizon, skip_step, grid),   # ok
                 "sarima": (train_data, valid_data, forecast_horizon, skip_step, predict_date, feature_col(df)),   # ok
                 "stacking": (train_data, valid_data, feature_col(df), predict_date),   # ok
-                "tabnet": (train_data, valid_data, feature_col(df), predict_date)   # ok
+                "tabnet": (train_data, valid_data, feature_col(df), predict_date),   # ok
+                "arima-mix-xgboost": (train_data, valid_data, feature_col(df), predict_date)
                 # DeepAR
                 # NGBoost 算誤差區間
             }
@@ -108,19 +103,17 @@ async def predict(request: Request, file: UploadFile = File(...), model: str = F
                     log_df = log_append(log_df, model_type, predict_date.strftime("%Y-%m"), raw_predict, true_value, mae)
 
             # 動態導入模型並進行預測
-            elif model in model_params:
+            elif model in model_params and grid == True:
                 raw_predict, mae = model_module[model].predict(*model_params[model])
                 best_model = model
                 predicted_value[model] = raw_predict
                 log_df = log_append(log_df, model, predict_date.strftime("%Y-%m"), raw_predict, true_value, mae)
-            elif grid == True:
+            elif model in model_params:
                 if model.split('_')[0] in model_params:
                     raw_predict, mae = model_module[model].predict(*model_params[model])
                     best_model = model
                     predicted_value[model] = raw_predict
                     log_df = log_append(log_df, model, predict_date.strftime("%Y-%m"), raw_predict, true_value, mae)
-            else:
-                raise ValueError("Unknown model type")
             result_data.append({"date": predict_date.strftime("%Y-%m"), "best_model": best_model, "value": predicted_value[best_model]})
 
         print(type(result_data))

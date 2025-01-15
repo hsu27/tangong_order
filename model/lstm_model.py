@@ -60,7 +60,7 @@ def reshape_data(data, num_samples, time_step, pad_value=0.0):
     data = data.reshape(num_samples, time_step, n_features)
     return torch.tensor(data, dtype=torch.float32)
 
-def predict(train_data, valid_data, scale, time_step, forecast_horizon, EPOCH=20, BATCH_SIZE=32):
+def predict(train_data, valid_data, time_step, forecast_horizon, EPOCH=20, BATCH_SIZE=32):
     """
     一次性預測 6 步：
       - 模型輸出 (output_size=6)

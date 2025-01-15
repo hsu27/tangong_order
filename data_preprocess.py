@@ -114,7 +114,7 @@ def feature_col(df):
 
     df[target] = df[target].astype(float)
 
-    correlation = df.corr()
+    correlation = df.corr(numeric_only = True)
 
     features_high_corr = list(correlation[target].abs().sort_values(ascending=False).iloc[1:3].index)
 
