@@ -113,24 +113,15 @@ class ARIMAXGBoostModel:
         # 計算 ARIMA 誤差
         #arima_errors = self.valid_data - arima_forecast
 
+        print(1)
         # 訓練 XGBoost 模型
-        # # 特徵工程（將 ARIMA 誤差作為目標變量）
-        # self.data['lag1'] = self.data['order'].shift(1)
-        # self.data['lag2'] = self.data['order'].shift(2)
-        # self.data['lag3'] = self.data['order'].shift(3)
-        # self.data['lag4'] = self.data['order'].shift(4)
-        # self.data = self.data.dropna()  # 丟棄 NaN 值
-        # # 定義特徵和目標變量
-        # features = ['lag1','lag2','lag3','lag4']#,'month','avg_2_months','avg_4_months','avg_12_months','diff_lag1_lag2','ewma_4_months','max_4_months','min_4_months','diff_lag3']
-        #計算 ARIMA 誤差，並在數據集中添加
+        # #計算 ARIMA 誤差，並在數據集中添加
         y_train = self.train_data[1] - ARIMA(self.train_data[1], order=self.arima_best_pdq).fit().fittedvalues
         y_test = self.valid_data[1] - ARIMA(self.valid_data[1], order=self.arima_best_pdq).fit().fittedvalues
+        
+        print(2)
         # # 分割數據集，確保時間順序
-        # X_train = X[:-self.test_volume]
-        # #X_test = X[-self.test_volume:]
-        # y_train = self.data['arima_errors'][:-self.test_volume]
-        # y_test = self.data['arima_errors'][-self.test_volume:]
-        # GridSearchCV for XGBoost
+        # # GridSearchCV for XGBoost
         xgb_reg = xgb.XGBRegressor(objective='reg:squarederror')
         grid_search = GridSearchCV(estimator=xgb_reg, param_grid=self.xgboost_param_grid, cv=3, scoring='neg_mean_squared_error', verbose=1)
         grid_search.fit(self.train_data[0], y_train)

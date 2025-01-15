@@ -9,7 +9,7 @@ numpy==1.22.4
 pandas==2.2.3
 pytorch-tabnet==4.1.0
 requests==2.18.4
-scikit-learn==1.6.1
+scikit-learn==1.0.2
 scikit-optimize==0.10.2
 statsmodels==0.14.4
 torch==2.5.1+cu121
