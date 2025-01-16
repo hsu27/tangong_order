@@ -37,10 +37,10 @@
   - api：
 
     ```bash
-    # 取得 api 資料，並更新於本地端
-    $ pyhon get_data.py
-    # 預測並回傳結果回 api
+    # 啟動伺服器
     $ pyhon main.py
+    # 開啟網頁 http://localhost:8000/getdata
+    # 自動運行並 post data
     ```
   
   - web
