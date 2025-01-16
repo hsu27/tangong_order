@@ -1,8 +1,9 @@
-from fastapi import FastAPI, UploadFile, File, HTTPException, Form, Request
+from fastapi import FastAPI, UploadFile, File, HTTPException, Form, Request, Body
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 import importlib
 import os
+from typing import Optional
 import numpy as np
 from fastapi.middleware.cors import CORSMiddleware
 from data_preprocess import *
@@ -39,7 +40,8 @@ async def upload_form(request: Request):
 
 @app.get("/getdata", response_class=HTMLResponse)
 async def get_api_data(request: Request):
-    data = get_data.get_data_main()
+    data= get_data.get_data_main()
+
     # 使用相對路徑呼叫 API
     relative_path = "/predict"
     base_url = "http://localhost:8000"  # 基底 URL（伺服器運行的位址）
@@ -72,11 +74,21 @@ async def call_predict():
 
 # 預測端點
 @app.post("/predict", response_class=JSONResponse)
-async def predict(request: Request, file: UploadFile = File(...), model: str = Form(...), data: str = Form(...)):
+async def predict(request: Request, file: Optional[UploadFile] = File(None), model: str = Form(...), data: dict = Body(...)):
+
     if not file.filename.endswith('.xlsx') or not file.filename.endswith('.csv'):
         raise HTTPException(status_code=400, detail="上傳的檔案必須為 Excel 格式 (.xlsx)")
     elif data == "":
         raise HTTPException(status_code=400, detail="請上傳資料或選擇 API 模式")
+    
+    # 提取來自 get_data 的資料
+    result_df = pd.read_json(data["result_df"], orient="split")  # 還原 DataFrame
+    item_type = data["item_type"]
+    cus_code = data["cus_code"]
+    mg = data["mg"]
+    sp_size = data["sp_size"]
+    sp_size2 = data["sp_size2"]
+
     # 初始化紀錄檔
     log_df = log_create()
     # 取得預測日期
@@ -162,7 +174,18 @@ async def predict(request: Request, file: UploadFile = File(...), model: str = F
                     best_model = model
                     predicted_value[model] = raw_predict
                     log_df = log_append(log_df, model, date.strftime("%Y-%m"), raw_predict, true_value, mae)
-            result_data.append({"date": date.strftime("%Y-%m"), "best_model": best_model, "value": predicted_value[best_model]})
+            
+            result_data.append({
+                "date": date.strftime("%Y-%m"),
+                "value": predicted_value[best_model],
+                "item_type": item_type,
+                "cus_code": cus_code,
+                "mg": mg,
+                "sp_size": sp_size,
+                "sp_size2": sp_size2,
+                "best_model": best_model
+            })
+
 
         log_save(log_df, (file.filename).removesuffix(".xlsx").split('_'))
 

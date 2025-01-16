@@ -91,7 +91,7 @@ def get_data_main():
 
         for item in all_data.get("data", []):
             item_code = str(item["item_code"]).upper()
-            cus_abbr = item.get("cus_abbr", "Unknown")
+            cus_code = item.get("cus_code", "Unknown")
             validiay = item.get("validiay", "Unknown")
             weight = float(item.get("weight", 0))
 
@@ -147,7 +147,7 @@ def get_data_main():
                 "mg": mg,
                 "sp_size": sp_size,
                 "sp_size2": sp_size2,
-                "cus_abbr": cus_abbr,
+                "cus_code": cus_code,
                 "validiay": validiay,
                 "weight": weight
             })
@@ -165,7 +165,7 @@ def get_data_main():
         df["year_month"] = df["validiay"].dt.to_period("M")
             
         # 根據指定的列進行分組
-        groups = df.groupby(["cus_abbr", "mg", "sp_size"])            
+        groups = df.groupby(["cus_code", "mg", "sp_size"])            
 
         # 處理每個分組
         for group_keys, group_data in groups:
@@ -215,8 +215,18 @@ def get_data_main():
             
             # 將日期格式化為YYYY-MM
             result_df['date'] = result_df['date'].dt.strftime('%Y-%m')
-            
-            return result_df, customer_df
+
+            # 回傳 result(dataframe)，品項名稱、客戶代碼、材質群組、尺寸1、尺寸2            
+            data = {
+                "result_df": result_df.to_json(orient="split"),  # 將 DataFrame 序列化
+                "item_type": item_type,
+                "cus_code": cus_code,
+                "mg": mg,
+                "sp_size": sp_size,
+                "sp_size2": sp_size2,
+            }
+
+            return data
 
             # # 儲存為CSV文件
             # result_df.to_csv(filepath, index=False, encoding='utf-8-sig')
