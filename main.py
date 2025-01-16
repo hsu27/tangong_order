@@ -48,29 +48,29 @@ async def get_api_data(request: Request):
 
     # 合併成完整的 URL
     url = f"{base_url}{relative_path}"
-    response = requests.post(url, data=data)
+    response = requests.post(url, data={"model": "all_model"}, json = data)
     return templates.TemplateResponse("upload.html", {"request": request})
 
-# 直接使用 API 傳值
-@app.get("/predict_api", response_class=JSONResponse)
-async def call_predict():
-    dir_path = './data'
-    # 遍歷目錄中的所有 CSV 文件
-    for file in os.listdir(dir_path):
-        if file.endswith(".csv"):
-            file_path = os.path.join(dir_path, file)
+# # 直接使用 API 傳值
+# @app.get("/predict_api", response_class=JSONResponse)
+# async def call_predict():
+#     dir_path = './data'
+#     # 遍歷目錄中的所有 CSV 文件
+#     for file in os.listdir(dir_path):
+#         if file.endswith(".csv"):
+#             file_path = os.path.join(dir_path, file)
 
-            # 讀取文件並模擬 UploadFile
-            with open(file_path, "rb") as f:
-                file_content = f.read()
-                read_file = UploadFile(filename=file, file=BytesIO(file_content))
+#             # 讀取文件並模擬 UploadFile
+#             with open(file_path, "rb") as f:
+#                 file_content = f.read()
+#                 read_file = UploadFile(filename=file, file=BytesIO(file_content))
 
-                # 呼叫 predict 函數
-                request = Request(scope={"type": "http"})  # 模擬 Request
-                response = await predict(request, read_file, model = 'all_model')
+#                 # 呼叫 predict 函數
+#                 request = Request(scope={"type": "http"})  # 模擬 Request
+#                 response = await predict(request, read_file, model = 'all_model')
                 
-    # 結束後返回 upload.html 表單頁面
-    return templates.TemplateResponse("upload.html", {"request": request})
+#     # 結束後返回 upload.html 表單頁面
+#     return templates.TemplateResponse("upload.html", {"request": request})
 
 # 預測端點
 @app.post("/predict", response_class=JSONResponse)
@@ -102,7 +102,7 @@ async def predict(request: Request, file: Optional[UploadFile] = File(None), mod
             # 從 API 取得 csv 資料
             raw_df = process_csv(file)
         else:
-            raw_df = pd.read_json(data, orient="split")
+            raw_df = pd.read_json(result_df, orient="split")
 
         df, scaled_data, nonScaled_data, scaler = preprocess_data(raw_df, 3)
 
@@ -144,7 +144,8 @@ async def predict(request: Request, file: Optional[UploadFile] = File(None), mod
                 "sarima": (train_data, valid_data, forecast_horizon, skip_step, date, feature_col(df)),   # ok
                 "stacking": (train_data, valid_data, feature_col(df), date),   # ok
                 "tabnet": (train_data, valid_data, feature_col(df), date),   # ok
-                "arima-mix-xgboost": (train_data, valid_data, feature_col(df), date)
+                "arima-mix-xgboost": (train_data, valid_data, feature_col(df), date),    # ok
+                "ETS": (train_data, valid_data, forecast_horizon, skip_step)
                 # DeepAR
                 # NGBoost 算誤差區間
             }

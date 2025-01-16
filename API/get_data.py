@@ -3,6 +3,10 @@ import json
 import os
 import pandas as pd
 
+
+output_folder = './data'
+os.makedirs(output_folder, exist_ok=True)
+
 def get_item_attributes(item_code, data):
     for item in data.get("data", []):
         if item.get("item_code") == item_code:
@@ -35,22 +39,20 @@ def adjust_sp_size(material, sp_size, item_data):
 
 def load_or_fetch_json(url, filename):
     # 檢查檔案是否已經存在
-    if os.path.exists(filename):
+    if os.path.exists(output_folder+filename):
         # 如果檔案存在，從本地載入資料
-        with open(filename, 'r') as file:
+        with open(output_folder+filename, 'r') as file:
             return json.load(file)
     else:
         # 如果檔案不存在，從 API 獲取資料並儲存到本地端
         response = requests.get(url)
         response.raise_for_status()  # 確保請求成功
         data = response.json()  # 將回應轉換為 JSON 格式
-        with open(filename, 'w') as file:
+        with open(output_folder+filename, 'w') as file:
             json.dump(data, file, indent=4)  # 儲存到本地檔案
         return data
 
 def get_data_main():
-    output_folder = './data'
-    os.makedirs(output_folder, exist_ok=True)
 
     # API URL
     all_url = "http://192.168.22.20:6001/data_access_layer/select_all_ship_data"
@@ -90,6 +92,7 @@ def get_data_main():
         unified_details = []
 
         for item in all_data.get("data", []):
+            print(1, item)
             item_code = str(item["item_code"]).upper()
             cus_code = item.get("cus_code", "Unknown")
             validiay = item.get("validiay", "Unknown")
@@ -153,7 +156,7 @@ def get_data_main():
             })
 
         # 將 unified_details 儲存為 JSON 檔案
-        with open("unified_details.json", 'w') as json_file:
+        with open(output_folder+"unified_details.json", 'w') as json_file:
             json.dump(unified_details, json_file, indent=4)
         print(f"已儲存 unified_details")
 
