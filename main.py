@@ -9,6 +9,7 @@ from data_preprocess import *
 from data_output import *
 from API import post
 from API import get_data
+import requests
 
 app = FastAPI()
 # uvicorn main:app --reload
@@ -36,6 +37,18 @@ TEST_VOLUME = 6 # 從資料集拿幾筆出來做驗證
 async def upload_form(request: Request):
     return templates.TemplateResponse("upload.html", {"request": request})
 
+@app.get("/getdata", response_class=HTMLResponse)
+async def get_api_data(request: Request):
+    data = get_data.get_data_main()
+    # 使用相對路徑呼叫 API
+    relative_path = "/predict"
+    base_url = "http://localhost:8000"  # 基底 URL（伺服器運行的位址）
+
+    # 合併成完整的 URL
+    url = f"{base_url}{relative_path}"
+    response = requests.post(url, data=data)
+    return templates.TemplateResponse("upload.html", {"request": request})
+
 # 直接使用 API 傳值
 @app.get("/predict_api", response_class=JSONResponse)
 async def call_predict():
@@ -59,9 +72,11 @@ async def call_predict():
 
 # 預測端點
 @app.post("/predict", response_class=JSONResponse)
-async def predict(request: Request, file: UploadFile = File(...), model: str = Form(...)):
+async def predict(request: Request, file: UploadFile = File(...), model: str = Form(...), data: str = Form(...)):
     if not file.filename.endswith('.xlsx') or not file.filename.endswith('.csv'):
         raise HTTPException(status_code=400, detail="上傳的檔案必須為 Excel 格式 (.xlsx)")
+    elif data == "":
+        raise HTTPException(status_code=400, detail="請上傳資料或選擇 API 模式")
     # 初始化紀錄檔
     log_df = log_create()
     # 取得預測日期
@@ -71,9 +86,11 @@ async def predict(request: Request, file: UploadFile = File(...), model: str = F
         if file.filename.endswith('.xlsx'):
             # 處理 Excel 資料
             raw_df = process_excel(file)
-        else:
+        elif file.filename.endswith('.csv'):
             # 從 API 取得 csv 資料
             raw_df = process_csv(file)
+        else:
+            raw_df = pd.read_json(data, orient="split")
 
         df, scaled_data, nonScaled_data, scaler = preprocess_data(raw_df, 3)
 

@@ -48,7 +48,7 @@ def load_or_fetch_json(url, filename):
             json.dump(data, file, indent=4)  # 儲存到本地檔案
         return data
 
-if __name__ == '__main__':
+def get_data_main():
     output_folder = './data'
     os.makedirs(output_folder, exist_ok=True)
 
@@ -216,9 +216,11 @@ if __name__ == '__main__':
             # 將日期格式化為YYYY-MM
             result_df['date'] = result_df['date'].dt.strftime('%Y-%m')
             
-            # 儲存為CSV文件
-            result_df.to_csv(filepath, index=False, encoding='utf-8-sig')
-            print(f"已儲存: {filepath}")
+            return result_df, customer_df
+
+            # # 儲存為CSV文件
+            # result_df.to_csv(filepath, index=False, encoding='utf-8-sig')
+            # print(f"已儲存: {filepath}")
 
     except requests.exceptions.RequestException as e:
         print(f"HTTP 請求錯誤：{e}")
