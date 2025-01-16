@@ -48,7 +48,9 @@ async def get_api_data(request: Request):
 
     # 合併成完整的 URL
     url = f"{base_url}{relative_path}"
+    print(2)
     response = requests.post(url, data={"model": "all_model"}, json = data)
+    print(3)
     return templates.TemplateResponse("upload.html", {"request": request})
 
 # # 直接使用 API 傳值

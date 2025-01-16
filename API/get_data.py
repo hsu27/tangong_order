@@ -4,7 +4,7 @@ import os
 import pandas as pd
 
 
-output_folder = './data'
+output_folder = './data/'
 os.makedirs(output_folder, exist_ok=True)
 
 def get_item_attributes(item_code, data):
