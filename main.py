@@ -1,4 +1,4 @@
-from fastapi import FastAPI, UploadFile, File, HTTPException, Form, Request, Body
+from fastapi import FastAPI, UploadFile, File, HTTPException, Form, Request, Body, Depends
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 import importlib
@@ -11,6 +11,9 @@ from data_output import *
 from API import post
 from API import get_data
 import requests
+from pydantic import BaseModel
+import json
+from fastapi.encoders import jsonable_encoder
 
 app = FastAPI()
 # uvicorn main:app --reload
@@ -33,68 +36,73 @@ EPOCH = 500
 BATCH_SIZE = 16
 TEST_VOLUME = 6 # 從資料集拿幾筆出來做驗證
 
+class GetItem(BaseModel):
+    result_df: str = None
+    item_type: str = None
+    cus_code: str = None
+    mg: str = None
+    sp_size: float = None
+    sp_size2: float = None
+    model: str = None
+    # #
+    # result_df: Optional[str] = None
+    # item_type: Optional[str] = None
+    # cus_code: Optional[str] = None
+    # mg: Optional[str] = None
+    # sp_size: Optional[float] = None
+    # sp_size2: Optional[float] = None
+    # model: Optional[str] = None
+    
+
 # HTML 表單頁面
 @app.get("/upload", response_class=HTMLResponse)
 async def upload_form(request: Request):
     return templates.TemplateResponse("upload.html", {"request": request})
 
 @app.get("/getdata", response_class=HTMLResponse)
-async def get_api_data(request: Request):
-    data= get_data.get_data_main()
+def get_api_data(request: Request):
+    try:
+        data = get_data.get_data_main()
 
-    # 使用相對路徑呼叫 API
-    relative_path = "/predict"
-    base_url = "http://localhost:8000"  # 基底 URL（伺服器運行的位址）
+        # 使用相對路徑呼叫 API
+        relative_path = "/predict"
+        base_url = "http://localhost:8000"  # 基底 URL（伺服器運行的位址）
 
-    # 合併成完整的 URL
-    url = f"{base_url}{relative_path}"
-    print(2)
-    response = requests.post(url, data={"model": "all_model"}, json = data)
-    print(3)
-    return templates.TemplateResponse("upload.html", {"request": request})
-
-# # 直接使用 API 傳值
-# @app.get("/predict_api", response_class=JSONResponse)
-# async def call_predict():
-#     dir_path = './data'
-#     # 遍歷目錄中的所有 CSV 文件
-#     for file in os.listdir(dir_path):
-#         if file.endswith(".csv"):
-#             file_path = os.path.join(dir_path, file)
-
-#             # 讀取文件並模擬 UploadFile
-#             with open(file_path, "rb") as f:
-#                 file_content = f.read()
-#                 read_file = UploadFile(filename=file, file=BytesIO(file_content))
-
-#                 # 呼叫 predict 函數
-#                 request = Request(scope={"type": "http"})  # 模擬 Request
-#                 response = await predict(request, read_file, model = 'all_model')
-                
-#     # 結束後返回 upload.html 表單頁面
-#     return templates.TemplateResponse("upload.html", {"request": request})
+        # 合併成完整的 URL
+        url = f"{base_url}{relative_path}"
+        
+        data["model"] = "all_model"
+        response = requests.post(url, params=data)
+        print(response.status_code)
+        response.close()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"處理文件時出錯: {e}")
+    # return templates.TemplateResponse("upload.html", {"request": request})
 
 # 預測端點
 @app.post("/predict", response_class=JSONResponse)
-async def predict(request: Request, file: Optional[UploadFile] = File(None), model: str = Form(...), data: dict = Body(...)):
-
-    if not file.filename.endswith('.xlsx') or not file.filename.endswith('.csv'):
-        raise HTTPException(status_code=400, detail="上傳的檔案必須為 Excel 格式 (.xlsx)")
-    elif data == "":
-        raise HTTPException(status_code=400, detail="請上傳資料或選擇 API 模式")
+def predict(request: Request, file: Optional[UploadFile] = File(None), data: GetItem = Depends(None)):
+# def predict(request: Request, file: Optional[UploadFile] = File(None), model: str = Form(...), data: Optional[dict] = Body(None)):
+    json_data = jsonable_encoder(data)
+    # print(json_data)
+    # print(type(json_data))
+    # print(json_data['result_df'])
+    # print(json_data['item_type'])
+    # print(json_data['cus_code'])
+    # print(json_data['mg'])
+    # print(json_data['sp_size'])
+    # print(json_data['sp_size2'])
+    # print(json_data['model'])
     
-    # 提取來自 get_data 的資料
-    result_df = pd.read_json(data["result_df"], orient="split")  # 還原 DataFrame
-    item_type = data["item_type"]
-    cus_code = data["cus_code"]
-    mg = data["mg"]
-    sp_size = data["sp_size"]
-    sp_size2 = data["sp_size2"]
+    try:
+        if not file.filename.endswith('.xlsx') and not file.filename.endswith('.csv'):
+            raise HTTPException(status_code=400, detail="上傳的檔案必須為 Excel 格式 (.xlsx)")
+    except:
+        if data == "":
+            raise HTTPException(status_code=400, detail="請上傳資料或選擇 API 模式")
 
     # 初始化紀錄檔
     log_df = log_create()
-    # 取得預測日期
-    predict_date= post.get_predict_date()
 
     try:
         if file.filename.endswith('.xlsx'):
@@ -104,7 +112,16 @@ async def predict(request: Request, file: Optional[UploadFile] = File(None), mod
             # 從 API 取得 csv 資料
             raw_df = process_csv(file)
         else:
-            raw_df = pd.read_json(result_df, orient="split")
+            model = json_data["model"]
+            raw_df = pd.read_json(json_data["result_df"], orient="split")  # 還原 DataFrame
+            # 提取來自 get_data 的資料
+            item_type = json_data["item_type"]
+            cus_code = json_data["cus_code"]
+            mg = json_data["mg"]
+            sp_size = json_data["sp_size"]
+            sp_size2 = json_data["sp_size2"]
+            # 取得預測日期
+            predict_date= post.get_predict_date()
 
         df, scaled_data, nonScaled_data, scaler = preprocess_data(raw_df, 3)
 
@@ -131,12 +148,15 @@ async def predict(request: Request, file: Optional[UploadFile] = File(None), mod
         max_step = 3
         # 分別計算 skip_step = 0, 1, 2 的結果
         for skip_step in range(3):
-
-            # 預測日期為原始數據最後一筆日期後
-            # predict_date = raw_df['date'].iloc[-(max_step-skip_step)]
-            # true_value = raw_df[raw_df['date'] == predict_date]['order'].iloc[0]
-            true_value = 0
-            date = predict_date[skip_step]
+            # web
+            if data == None:
+                # 預測日期為原始數據最後一筆日期後
+                date = raw_df['date'].iloc[-(max_step-skip_step)]
+                true_value = raw_df[raw_df['date'] == date]['order'].iloc[0]
+            # api
+            else:
+                true_value = 0
+                date = predict_date[skip_step]
 
             # 各模型傳入參數
             model_params = {
@@ -147,7 +167,7 @@ async def predict(request: Request, file: Optional[UploadFile] = File(None), mod
                 "stacking": (train_data, valid_data, feature_col(df), date),   # ok
                 "tabnet": (train_data, valid_data, feature_col(df), date),   # ok
                 "arima-mix-xgboost": (train_data, valid_data, feature_col(df), date),    # ok
-                "ETS": (train_data, valid_data, forecast_horizon, skip_step)
+                "ETS": (train_data, valid_data, forecast_horizon, skip_step)    # ok
                 # DeepAR
                 # NGBoost 算誤差區間
             }
@@ -178,22 +198,29 @@ async def predict(request: Request, file: Optional[UploadFile] = File(None), mod
                     predicted_value[model] = raw_predict
                     log_df = log_append(log_df, model, date.strftime("%Y-%m"), raw_predict, true_value, mae)
             
-            result_data.append({
-                "date": date.strftime("%Y-%m"),
-                "value": predicted_value[best_model],
-                "item_type": item_type,
-                "cus_code": cus_code,
-                "mg": mg,
-                "sp_size": sp_size,
-                "sp_size2": sp_size2,
-                "best_model": best_model
-            })
+            # web
+            if data == None:
+                result_data.append({"date": date.strftime("%Y-%m"), "best_model": best_model, "value": predicted_value[best_model]})
+            # api
+            else:
+                result_data.append({
+                    "date": date.strftime("%Y-%m"),
+                    "value": predicted_value[best_model],
+                    "item_type": item_type,
+                    "cus_code": cus_code,
+                    "mg": mg,
+                    "sp_size": sp_size,
+                    "sp_size2": sp_size2,
+                    "best_model": best_model
+                })
 
 
         log_save(log_df, (file.filename).removesuffix(".xlsx").split('_'))
 
-        # post data to API
-        post.post_data(result_data)
+        
+        if data != None:
+            # post data to API
+            post.post_data(result_data)
         # 返回 JSON 格式的結果結構
         return JSONResponse(content=result_data)
     

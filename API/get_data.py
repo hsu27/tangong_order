@@ -50,6 +50,8 @@ def load_or_fetch_json(url, filename):
         data = response.json()  # 將回應轉換為 JSON 格式
         with open(output_folder+filename, 'w') as file:
             json.dump(data, file, indent=4)  # 儲存到本地檔案
+        
+        response.close()
         return data
 
 def get_data_main():
@@ -222,6 +224,7 @@ def get_data_main():
             # 回傳 result(dataframe)，品項名稱、客戶代碼、材質群組、尺寸1、尺寸2            
             data = {
                 "result_df": result_df.to_json(orient="split"),  # 將 DataFrame 序列化
+                # "result_df": result_df,  # 將 DataFrame 序列化
                 "item_type": item_type,
                 "cus_code": cus_code,
                 "mg": mg,

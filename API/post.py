@@ -21,7 +21,7 @@ data = [
         "sp_size": 15.2,
         "sp_size2": 10.5,
         "model": "",
-        "error": 0.1
+        # "error": 0.1
     },
     {
         "date": get_predict_date()[1],
@@ -32,7 +32,7 @@ data = [
         "sp_size": 20.0,
         "sp_size2": 12.0,
         "model": "",
-        "error": 0.2
+        # "error": 0.2
     },
     {
         "date": get_predict_date()[2],
@@ -43,7 +43,7 @@ data = [
         "sp_size": 15.2,
         "sp_size2": 10.5,
         "model": "",
-        "error": 0.1
+        # "error": 0.1
     }
 ]
 
