@@ -37,21 +37,13 @@ BATCH_SIZE = 16
 TEST_VOLUME = 6 # 從資料集拿幾筆出來做驗證
 
 class GetItem(BaseModel):
-    result_df: str = None
-    item_type: str = None
-    cus_code: str = None
-    mg: str = None
-    sp_size: float = None
-    sp_size2: float = None
-    model: str = None
-    # #
-    # result_df: Optional[str] = None
-    # item_type: Optional[str] = None
-    # cus_code: Optional[str] = None
-    # mg: Optional[str] = None
-    # sp_size: Optional[float] = None
-    # sp_size2: Optional[float] = None
-    # model: Optional[str] = None
+    result_df: Optional[str] = None
+    item_type: Optional[str] = None
+    cus_code: Optional[str] = None
+    mg: Optional[str] = None
+    sp_size: Optional[float] = None
+    sp_size2: Optional[float] = None
+    model: Optional[str] = None
     
 
 # HTML 表單頁面
@@ -83,7 +75,6 @@ def get_api_data(request: Request):
 @app.post("/predict", response_class=JSONResponse)
 def predict(request: Request, file: Optional[UploadFile] = File(None), data: GetItem = Depends(None)):
 # def predict(request: Request, file: Optional[UploadFile] = File(None), model: str = Form(...), data: Optional[dict] = Body(None)):
-    json_data = jsonable_encoder(data)
     # print(json_data)
     # print(type(json_data))
     # print(json_data['result_df'])
@@ -94,37 +85,37 @@ def predict(request: Request, file: Optional[UploadFile] = File(None), data: Get
     # print(json_data['sp_size2'])
     # print(json_data['model'])
     
-    try:
+    if file == None and data == None:
+        raise HTTPException(status_code=400, detail="上傳的格式錯誤")
+    elif file != None:
         if not file.filename.endswith('.xlsx') and not file.filename.endswith('.csv'):
-            raise HTTPException(status_code=400, detail="上傳的檔案必須為 Excel 格式 (.xlsx)")
-    except:
-        if data == "":
-            raise HTTPException(status_code=400, detail="請上傳資料或選擇 API 模式")
+            raise HTTPException(status_code=400, detail="上傳的格式錯誤")
 
     # 初始化紀錄檔
     log_df = log_create()
 
     try:
-        if file.filename.endswith('.xlsx'):
-            # 處理 Excel 資料
-            raw_df = process_excel(file)
-        elif file.filename.endswith('.csv'):
-            # 從 API 取得 csv 資料
-            raw_df = process_csv(file)
+        if file != None:
+            if file.filename.endswith('.xlsx'):
+                # 處理 Excel 資料
+                raw_df = process_excel(file)
+            elif file.filename.endswith('.csv'):
+                # 從 API 取得 csv 資料
+                raw_df = process_csv(file)
         else:
+            json_data = jsonable_encoder(data)
             model = json_data["model"]
-            raw_df = pd.read_json(json_data["result_df"], orient="split")  # 還原 DataFrame
             # 提取來自 get_data 的資料
             item_type = json_data["item_type"]
             cus_code = json_data["cus_code"]
             mg = json_data["mg"]
             sp_size = json_data["sp_size"]
             sp_size2 = json_data["sp_size2"]
+            raw_df = pd.read_json(json_data["result_df"], orient="split")  # 還原 DataFrame
             # 取得預測日期
-            predict_date= post.get_predict_date()
+            predict_date = post.get_predict_date()
 
         df, scaled_data, nonScaled_data, scaler = preprocess_data(raw_df, 3)
-
         # 訓練集跟驗證集
         train_data, valid_data = split_x_y(df)
 

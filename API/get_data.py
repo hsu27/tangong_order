@@ -224,7 +224,7 @@ def get_data_main():
             # 回傳 result(dataframe)，品項名稱、客戶代碼、材質群組、尺寸1、尺寸2            
             data = {
                 "result_df": result_df.to_json(orient="split"),  # 將 DataFrame 序列化
-                # "result_df": result_df,  # 將 DataFrame 序列化
+                # "result_df": result_df,
                 "item_type": item_type,
                 "cus_code": cus_code,
                 "mg": mg,

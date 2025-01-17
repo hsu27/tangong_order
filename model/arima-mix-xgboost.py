@@ -113,13 +113,11 @@ class ARIMAXGBoostModel:
         # 計算 ARIMA 誤差
         #arima_errors = self.valid_data - arima_forecast
 
-        print(1)
         # 訓練 XGBoost 模型
         # #計算 ARIMA 誤差，並在數據集中添加
         y_train = self.train_data[1] - ARIMA(self.train_data[1], order=self.arima_best_pdq).fit().fittedvalues
         y_test = self.valid_data[1] - ARIMA(self.valid_data[1], order=self.arima_best_pdq).fit().fittedvalues
         
-        print(2)
         # # 分割數據集，確保時間順序
         # # GridSearchCV for XGBoost
         xgb_reg = xgb.XGBRegressor(objective='reg:squarederror')
