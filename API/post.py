@@ -1,14 +1,16 @@
 import requests
 import pandas as pd
+from datetime import datetime
 
 # FastAPI 伺服器的 URL
 url = "http://192.168.22.20:6001/data_access_layer/insert_ord_forcast"
 
 
-# 定義預測日期
+
 def get_predict_date():
-    date = ["2025-01", "2025-02", "2025-03"]
-    return date
+    date_strs = ["2025-01-01", "2025-02-01", "2025-03-01"]
+    date_list = [datetime.strptime(d, "%Y-%m-%d") for d in date_strs]
+    return date_list
 
 # # 要發送的資料
 # data = [

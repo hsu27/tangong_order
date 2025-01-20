@@ -112,6 +112,7 @@ class ARIMAXGBoostModel:
         xgb_reg = xgb.XGBRegressor(objective='reg:squarederror')
         grid_search = GridSearchCV(estimator=xgb_reg, param_grid=self.xgboost_param_grid, cv=3, scoring='neg_mean_squared_error', verbose=1)
         grid_search.fit(self.train_data[0], y_train)
+
         # 使用最佳參數進行預測
         self.xgboost_model = grid_search.best_estimator_
 

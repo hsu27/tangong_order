@@ -73,7 +73,7 @@ def get_api_data(request: Request):
 
 # 預測端點
 @app.post("/predict", response_class=JSONResponse)
-def predict(request: Request, file: Optional[UploadFile] = File(None), model: str = Form(...), data: GetItem = Depends(None)):
+def predict(request: Request, file: Optional[UploadFile] = File(None), data: GetItem = Depends(None)):
 # def predict(request: Request, file: Optional[UploadFile] = File(None), model: str = Form(...), data: Optional[dict] = Body(None)):
     api_mode = False
     
@@ -112,8 +112,6 @@ def predict(request: Request, file: Optional[UploadFile] = File(None), model: st
             raise HTTPException(status_code=500, detail=f"訓練資料過少，需要至少兩年")
         
         df, scaled_data, nonScaled_data, scaler = preprocess_data(raw_df, 3)
-
-        print(df,df.columns)
 
         # 訓練集跟驗證集
         train_data, valid_data = split_x_y(df)

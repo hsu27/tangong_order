@@ -87,129 +87,128 @@ def get_data_main():
     item_data_file = "item_data.json"
 
     try:
-        # 讀取或取得 JSON 資料
-        all_data = load_or_fetch_json(all_url, all_data_file)
-        item_data = load_or_fetch_json(item_info_url, item_data_file)
+        # # 讀取或取得 JSON 資料
+        # all_data = load_or_fetch_json(all_url, all_data_file)
+        # item_data = load_or_fetch_json(item_info_url, item_data_file)
 
-        # 儲存統一格式的資料
-        unified_details = []
+        # # 儲存統一格式的資料
+        # unified_details = []
 
-        for item in all_data.get("data", []):
-            print(1, item)
-            item_code = str(item["item_code"]).upper()
-            cus_code = item.get("cus_code", "Unknown")
-            validiay = item.get("validiay", "Unknown")
-            weight = float(item.get("weight", 0))
+        # for item in all_data.get("data", []):
+        #     print(1, item)
+        #     item_code = str(item["item_code"]).upper()
+        #     cus_code = item.get("cus_code", "Unknown")
+        #     validiay = item.get("validiay", "Unknown")
+        #     weight = float(item.get("weight", 0))
 
-            if weight == 0:
-                continue
+        #     if weight == 0:
+        #         continue
 
-            attributes = get_item_attributes(item_code, item_data)
+        #     attributes = get_item_attributes(item_code, item_data)
             
-            if attributes:
-                item_type = attributes.get("type")
-                material = attributes.get("material")
-                mg = attributes.get("mg")
-                sp_size = attributes.get("sp_size")
-                sp_size2 = attributes.get("sp_size2", 0)
+        #     if attributes:
+        #         item_type = attributes.get("type")
+        #         material = attributes.get("material")
+        #         mg = attributes.get("mg")
+        #         sp_size = attributes.get("sp_size")
+        #         sp_size2 = attributes.get("sp_size2", 0)
 
-                if mg is None:
-                    mg = material_mapping.get(material)
-            else:
-                # 舊編碼，API 無對應資料
-                # CH00G4000D1.5875
-                # 
-                g_index = item_code.find("G")
-                if g_index == -1:
-                    continue
+        #         if mg is None:
+        #             mg = material_mapping.get(material)
+        #     else:
+        #         # 舊編碼，API 無對應資料
+        #         # CH00G4000D1.5875
+        #         # 
+        #         g_index = item_code.find("G")
+        #         if g_index == -1:
+        #             continue
 
-                r_index = item_code.find("R", g_index + 1)
-                d_index = item_code.find("D", g_index + 1)
+        #         r_index = item_code.find("R", g_index + 1)
+        #         d_index = item_code.find("D", g_index + 1)
 
-                if r_index != -1:
-                    item_type = "R"
-                    material = item_code[:g_index]
-                    parts = item_code[r_index + 1:].split("X")
-                    sp_size = parts[0]
-                    sp_size2 = parts[1] if len(parts) > 1 else 0
-                elif d_index != -1:
-                    item_type = "B"
-                    material = item_code[:g_index]
-                    sp_size = item_code[d_index + 1:]
-                    sp_size2 = 0
-                else:
-                    continue
+        #         if r_index != -1:
+        #             item_type = "R"
+        #             material = item_code[:g_index]
+        #             parts = item_code[r_index + 1:].split("X")
+        #             sp_size = parts[0]
+        #             sp_size2 = parts[1] if len(parts) > 1 else 0
+        #         elif d_index != -1:
+        #             item_type = "B"
+        #             material = item_code[:g_index]
+        #             sp_size = item_code[d_index + 1:]
+        #             sp_size2 = 0
+        #         else:
+        #             continue
 
-                mg = material_mapping.get(material)
-                if mg is None:
-                    continue
+        #         mg = material_mapping.get(material)
+        #         if mg is None:
+        #             continue
 
-            sp_size = adjust_sp_size(material, sp_size, item_data)
+        #     sp_size = adjust_sp_size(material, sp_size, item_data)
 
-            unified_details.append({
-                "item_code": item_code,
-                "item_type": item_type,
-                "material": material,
-                "mg": mg,
-                "sp_size": sp_size,
-                "sp_size2": sp_size2,
-                "cus_code": cus_code,
-                "validiay": validiay,
-                "weight": weight
-            })
+        #     unified_details.append({
+        #         "item_code": item_code,
+        #         "item_type": item_type,
+        #         "material": material,
+        #         "mg": mg,
+        #         "sp_size": sp_size,
+        #         "sp_size2": sp_size2,
+        #         "cus_code": cus_code,
+        #         "validiay": validiay,
+        #         "weight": weight
+        #     })
 
-            break
 
         # # 將 unified_details 儲存為 JSON 檔案
         # with open(output_folder+"unified_details.json", 'w') as json_file:
         #     json.dump(unified_details, json_file, indent=4)
         # print(f"已儲存 unified_details")
 
-        # 將統一格式的資料直接轉換為 DataFrame
-        df = pd.DataFrame(unified_details)
+        # # 將統一格式的資料直接轉換為 DataFrame
+        # df = pd.DataFrame(unified_details)
 
-        # 將有效日期轉換為日期時間格式
-        df["validiay"] = pd.to_datetime(df["validiay"], errors="coerce")
-        df["year_month"] = df["validiay"].dt.to_period("M")
+        # # 將有效日期轉換為日期時間格式
+        # df["validiay"] = pd.to_datetime(df["validiay"], errors="coerce")
+        # df["year_month"] = df["validiay"].dt.to_period("M")
             
-        # 根據指定的列進行分組
-        groups = df.groupby(["cus_code", "mg", "sp_size"])            
+        # # 根據指定的列進行分組
+        # groups = df.groupby(["cus_code", "mg", "sp_size"])            
 
-        # 處理每個分組
-        for group_keys, group_data in groups:
+        # # 處理每個分組
+        # for group_keys, group_data in groups:
 
-            # 檢查分組的資料量是否大於 100
-            if len(group_data) > 100:
-                # 計算 Z-score
-                group_data['z_score'] = (group_data['weight'] - group_data['weight'].mean()) / group_data['weight'].std()
+            # # 檢查分組的資料量是否大於 100
+            # if len(group_data) > 100:
+            #     # 計算 Z-score
+            #     group_data['z_score'] = (group_data['weight'] - group_data['weight'].mean()) / group_data['weight'].std()
                 
-                # 將異常值 (|Z| > 3) 的 weight 設為 0
-                group_data.loc[group_data['z_score'].abs() > 3, 'weight'] = 0
+            #     # 將異常值 (|Z| > 3) 的 weight 設為 0
+            #     group_data.loc[group_data['z_score'].abs() > 3, 'weight'] = 0
                     
-            # 獲取最小和最大日期，確保完整日期範圍
-            min_date = group_data["validiay"].min()
-            max_date = group_data["validiay"].max()
+            # # 獲取最小和最大日期，確保完整日期範圍
+            # min_date = group_data["validiay"].min()
+            # max_date = group_data["validiay"].max()
             
-            # 創建完整的日期範圍
-            date_range = pd.date_range(
-                start=min_date.replace(day=1),
-                end=max_date.replace(day=1),
-                freq='MS'
-            )
+            # # 創建完整的日期範圍
+            # date_range = pd.date_range(
+            #     start=min_date.replace(day=1),
+            #     end=max_date.replace(day=1),
+            #     freq='MS'
+            # )
             
-            # 使用完整的日期範圍創建基礎DataFrame
-            result_df = pd.DataFrame({'date': date_range})
+            # # 使用完整的日期範圍創建基礎DataFrame
+            # result_df = pd.DataFrame({'date': date_range})
             
-            # 按年-月匯總重量
-            monthly_sums = group_data.groupby(pd.Grouper(key='validiay', freq='MS'))['weight'].sum()
+            # # 按年-月匯總重量
+            # monthly_sums = group_data.groupby(pd.Grouper(key='validiay', freq='MS'))['weight'].sum()
             
-            # 將月度總和與完整日期範圍合併
-            result_df = result_df.merge(
-                monthly_sums.reset_index(),
-                left_on='date',
-                right_on='validiay',
-                how='left'
-            )
+            # # 將月度總和與完整日期範圍合併
+            # result_df = result_df.merge(
+            #     monthly_sums.reset_index(),
+            #     left_on='date',
+            #     right_on='validiay',
+            #     how='left'
+            # )
             
             # # 用0填充缺失值
             # result_df['order'] = result_df['weight'].fillna(0)
@@ -220,9 +219,6 @@ def get_data_main():
             # # 將日期格式化為YYYY-MM
             # result_df['date'] = result_df['date'].dt.strftime('%Y-%m')
 
-            #
-            result_df = pd.read_excel('data/data_CT12000.xlsx')
-            result_df['date'] = pd.to_datetime(result_df['date'])
 
             # # 回傳 result(dataframe)，品項名稱、客戶代碼、材質群組、尺寸1、尺寸2            
             # data = {
@@ -233,16 +229,21 @@ def get_data_main():
             #     "sp_size": sp_size,
             #     "sp_size2": sp_size2,
             # }
+            
+            # return data     
 
-            data = {
-                "result_df": result_df.to_json(orient="split"),  # 將 DataFrame 序列化
-                "item_type": "A",
-                "cus_code": "C123",
-                "mg": "MG01",
-                "sp_size": 15.2,
-                "sp_size2": 10.5,
-            }
-            return data
+        #
+        result_df = pd.read_excel('data/data_CT12000.xlsx')
+        result_df['date'] = pd.to_datetime(result_df['date'])
+        data = {
+            "result_df": result_df.to_json(orient="split"),  # 將 DataFrame 序列化
+            "item_type": "A",
+            "cus_code": "C123",
+            "mg": "MG01",
+            "sp_size": 15.2,
+            "sp_size2": 10.5,
+        }
+        return data
 
     except requests.exceptions.RequestException as e:
         print(f"HTTP 請求錯誤：{e}")
