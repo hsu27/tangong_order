@@ -12,7 +12,7 @@ from API import post
 from API import get_data
 import requests
 from pydantic import BaseModel
-import json
+from API import fetch_order
 from fastapi.encoders import jsonable_encoder
 
 app = FastAPI()
@@ -37,9 +37,10 @@ BATCH_SIZE = 16
 TEST_VOLUME = 6 # 從資料集拿幾筆出來做驗證
 
 class GetItem(BaseModel):
-    result_df: Optional[str] = None
+    data: Optional[str] = None
+
     item_type: Optional[str] = None
-    cus_code: Optional[str] = None
+    cus_abbr: Optional[str] = None
     mg: Optional[str] = None
     sp_size: Optional[float] = None
     sp_size2: Optional[float] = None
@@ -54,7 +55,9 @@ async def upload_form(request: Request):
 @app.get("/getdata", response_class=HTMLResponse)
 def get_api_data(request: Request):
     try:
-        data = get_data.get_data_main()
+        # data = get_data.get_data_main()
+
+        data = fetch_order.extract_data()
 
         # 使用相對路徑呼叫 API
         relative_path = "/predict"
@@ -63,10 +66,21 @@ def get_api_data(request: Request):
         # 合併成完整的 URL
         url = f"{base_url}{relative_path}"
         
-        data["model"] = "all_model"
-        response = requests.post(url, params=data)
-        print(response.status_code)
-        response.close()
+        for key in data:
+            data[key]["model"] = "all_model"
+            data[key]['data'] = pd.DataFrame(data[key]['data'])
+            data[key]['data']['date'] = pd.to_datetime(data[key]['data']['date'], format='%Y-%m')
+            data[key]['data'] = data[key]['data'].to_json(orient="split")
+            del data[key]['date_list']
+            # print(data[key])
+            response = requests.post(url, params=data[key])
+            print(response.status_code)
+            response.close()
+        
+        # data["model"] = "all_model"
+        # response = requests.post(url, params=data)
+        # print(response.status_code)
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"處理文件時出錯: {e}")
     # return templates.TemplateResponse("upload.html", {"request": request})
@@ -95,14 +109,15 @@ def predict(request: Request, file: Optional[UploadFile] = File(None), data: Get
             api_mode = False
         else:
             json_data = jsonable_encoder(data)
+            print(json_data)
             model = json_data["model"]
             # 提取來自 get_data 的資料
             item_type = json_data["item_type"]
-            cus_code = json_data["cus_code"]
+            cus_code = json_data["cus_abbr"]
             mg = json_data["mg"]
             sp_size = json_data["sp_size"]
             sp_size2 = json_data["sp_size2"]
-            raw_df = pd.read_json(json_data["result_df"], orient="split")  # 還原 DataFrame
+            raw_df = pd.read_json(json_data["data"], orient="split")  # 還原 DataFrame
             # 取得預測日期
             predict_date = post.get_predict_date()
             api_mode = True
@@ -186,24 +201,23 @@ def predict(request: Request, file: Optional[UploadFile] = File(None), data: Get
                     predicted_value[model] = raw_predict
                     log_df = log_append(log_df, model, date.strftime("%Y-%m"), raw_predict, true_value, mae)
             
-            # web
+            # api
             if api_mode:
                 result_data.append({
                     "date": date.strftime("%Y-%m"),
-                    "value": predicted_value[best_model],
+                    "weight": predicted_value[best_model],
                     "item_type": item_type,
                     "cus_code": cus_code,
                     "mg": mg,
                     "sp_size": sp_size,
                     "sp_size2": sp_size2,
-                    "best_model": best_model
+                    "model": best_model
                 })
-            # api
+            # web
             else:
                 result_data.append({"date": date.strftime("%Y-%m"), "best_model": best_model, "value": predicted_value[best_model]})
-
-        log_save(log_df, (file.filename).removesuffix(".xlsx").split('_'))
-        
+                log_save(log_df, (file.filename).removesuffix(".xlsx").split('_'))
+        print(result_data)
         if api_mode:
             # post data to API
             post.post_data(result_data)

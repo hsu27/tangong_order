@@ -15,7 +15,6 @@ def log_create():
 def log_append(log_df, model_name, date, predict_value, true_value, mae):
     # Calculate the absolute error
     error_value = abs(predict_value - true_value)
-    print(true_value)
 
     # Add a new row
     new_row = {
