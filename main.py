@@ -14,6 +14,14 @@ import requests
 from pydantic import BaseModel
 import json
 from fastapi.encoders import jsonable_encoder
+import uvicorn 
+from uvicorn import Config, Server
+import schedule
+import threading
+import time
+from datetime import datetime
+from API import fetch_order
+from API import get_data
 
 app = FastAPI()
 # uvicorn main:app --reload
@@ -75,7 +83,7 @@ def get_api_data(request: Request):
 @app.post("/predict", response_class=JSONResponse)
 def predict(request: Request, file: Optional[UploadFile] = File(None), data: GetItem = Depends(None)):
 # def predict(request: Request, file: Optional[UploadFile] = File(None), model: str = Form(...), data: Optional[dict] = Body(None)):
-    api_mode = False
+    api_mode = True
     
     if file != None:
         if not file.filename.endswith('.xlsx') and not file.filename.endswith('.csv'):
@@ -165,6 +173,7 @@ def predict(request: Request, file: Optional[UploadFile] = File(None), data: Get
             if 'all' in model:
                 grid = True
                 for model_type in model_module:
+                    print(f'正要使用{model_type}進行預測\n')
                     if model_type in model_params:
                         raw_predict, mae = model_module[model_type].predict(*model_params[model_type])
                         predicted_value[model_type] = raw_predict
@@ -214,3 +223,72 @@ def predict(request: Request, file: Optional[UploadFile] = File(None), data: Get
         raise HTTPException(status_code=500, detail=f"無法載入所選模型 '{model}_model'。請確認模型名稱正確且檔案存在。詳細錯誤：{str(e)}")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"處理文件時出錯: {e}")
+
+def start_fastapi():
+    # 手動啟動 Uvicorn 服務
+    config = Config(app, host="127.0.0.1", port=8000)
+    server = Server(config)
+    server.run()
+
+def run_task():
+    while True:
+        # 獲取當前日期和時間
+        now = datetime.now()
+        print(f"now:{now}")
+
+        # 如果是每月一號，執行任務
+        if now.day == 20:
+            print(f"執行任務！日期：{now.strftime('%Y-%m-%d %H:%M:%S')}")
+            # monthly_data_prediction_upload()
+            
+            # 假設任務執行需要一些時間
+            time.sleep(60 * 60 * 24)  # 暫停一天，避免多次執行同一天的任務
+
+        # 每隔一小時檢查一次
+        time.sleep(3600)
+
+def monthly_data_prediction_upload():
+    # 撈資料(每月一號執行、計時器) 
+    # print(classifyed_data)
+    classifyed_data = fetch_order.extract_data()    
+
+    for key, value in classifyed_data.items():
+        cus_code = value.get('cus_abbr', '')
+        item_type = value.get('item_type', '')
+        mg = value.get('mg', '')
+        sp_size = value.get('sp_size', '')
+        sp_size2 = value.get('sp_size2', '')
+        df = value.get('data', '')
+        result_df = pd.DataFrame(df).to_json(orient="split")
+
+        data = {
+            "result_df": result_df,
+            "item_type": item_type,
+            "cus_code": cus_code,
+            "mg": mg,
+            "sp_size": sp_size,
+            "sp_size2": sp_size2
+        }
+
+        # 使用相對路徑呼叫 API
+        relative_path = "/predict"
+        base_url = "http://localhost:8000"  # 基底 URL（伺服器運行的位址）
+
+        # 合併成完整的 URL
+        url = f"{base_url}{relative_path}"
+        
+        data["model"] = "all_model"
+        response = requests.post(url, params=data)
+        print(response.status_code)
+        response.close()
+
+if __name__ == "__main__":    
+     # 啟用 FastAPI 服務執行緒
+    threading.Thread(target=start_fastapi, daemon=True).start()
+
+    # 啟用排程執行緒
+    threading.Thread(target=monthly_data_prediction_upload, daemon=True).start()
+
+    # 維持程式運行
+    while True:
+        time.sleep(1)
