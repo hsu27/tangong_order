@@ -10,59 +10,59 @@ def get_predict_date():
     date = ["2025-01", "2025-02", "2025-03"]
     return date
 
-# 要發送的資料
-data = [
-    {
-        "date": get_predict_date()[0],
-        "weight": 0,
-        "item_type": "A",
-        "cus_code": "C123",
-        "mg": "MG01",
-        "sp_size": 15.2,
-        "sp_size2": 10.5,
-        "model": "",
-        # "error": 0.1
-    },
-    {
-        "date": get_predict_date()[1],
-        "weight": 0,
-        "item_type": "B",
-        "cus_code": "C456",
-        "mg": "MG02",
-        "sp_size": 20.0,
-        "sp_size2": 12.0,
-        "model": "",
-        # "error": 0.2
-    },
-    {
-        "date": get_predict_date()[2],
-        "weight": 0,
-        "item_type": "A",
-        "cus_code": "C123",
-        "mg": "MG01",
-        "sp_size": 15.2,
-        "sp_size2": 10.5,
-        "model": "",
-        # "error": 0.1
-    }
-]
+# # 要發送的資料
+# data = [
+#     {
+#         "date": get_predict_date()[0],
+#         "weight": 0,
+#         "item_type": "A",
+#         "cus_code": "C123",
+#         "mg": "MG01",
+#         "sp_size": 15.2,
+#         "sp_size2": 10.5,
+#         "model": "",
+#         # "error": 0.1
+#     },
+#     {
+#         "date": get_predict_date()[1],
+#         "weight": 0,
+#         "item_type": "B",
+#         "cus_code": "C456",
+#         "mg": "MG02",
+#         "sp_size": 20.0,
+#         "sp_size2": 12.0,
+#         "model": "",
+#         # "error": 0.2
+#     },
+#     {
+#         "date": get_predict_date()[2],
+#         "weight": 0,
+#         "item_type": "A",
+#         "cus_code": "C123",
+#         "mg": "MG01",
+#         "sp_size": 15.2,
+#         "sp_size2": 10.5,
+#         "model": "",
+#         # "error": 0.1
+#     }
+# ]
 
 def post_data(pred_data):
-    # 將資料轉換為 DataFrame
-    data_df = pd.DataFrame(data)
-    pred_df = pd.DataFrame(pred_data)
+    # # 將資料轉換為 DataFrame
+    # data_df = pd.DataFrame(data)
+    # pred_df = pd.DataFrame(pred_data)
 
-    # 根據 date 合併 pred_data 到 data
-    merged_df = pd.merge(data_df, pred_df, on='date', suffixes=('', '_pred'))
+    # # 根據 date 合併 pred_data 到 data
+    # merged_df = pd.merge(data_df, pred_df, on='date', suffixes=('', '_pred'))
 
-    # 更新 weight 和 model 欄位
-    merged_df['weight'] = merged_df['weight_pred']
-    merged_df['model'] = merged_df['model_pred']
+    # # 更新 weight 和 model 欄位
+    # merged_df['weight'] = merged_df['weight_pred']
+    # merged_df['model'] = merged_df['model_pred']
 
-    # 刪除多餘的欄位
-    merged_df = merged_df.drop(columns=['weight_pred', 'model_pred'])
+    # # 刪除多餘的欄位
+    # merged_df = merged_df.drop(columns=['weight_pred', 'model_pred'])
 
-    data_json = merged_df.to_json(orient="records")
+    data_json = pred_data.to_json(orient="records")
 
     # 發送 POST 請求
     response = requests.post(url, json=data_json)

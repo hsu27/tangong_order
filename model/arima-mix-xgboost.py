@@ -48,13 +48,6 @@ class ARIMAXGBoostModel:
         '''
         warnings.filterwarnings('ignore')   # 忽略警告
 
-        # ## 待改
-        # self.data = data
-        # self.data['order'] = self.data['order'].astype(float)
-        # # 訓練集和驗證集
-        # self.test_volume = test_volume
-        # self.train_data = self.data['order'][:-self.test_volume]
-        # self.valid_data = self.data['order'][-self.test_volume:]
         self.train_data = train_data
         self.valid_data = valid_data
         self.feature_cols = feature_cols
@@ -86,7 +79,7 @@ class ARIMAXGBoostModel:
         '''訓練ARIMA模型及XGBoost模型'''
 
         # 訓練 ARIMA 模型
-        # 搜尋最好的組合，用MSE來判斷。
+        # 搜尋最好的組合，用MAE來判斷。
         for param in self.arima_pdq:
             try:
                 arima_model = ARIMA(self.train_data[1], order=param)
@@ -108,10 +101,6 @@ class ARIMAXGBoostModel:
         # 使用最佳參數訓練
         self.arima_model = ARIMA(self.train_data[1], order=self.arima_best_pdq)
         self.arima_model = self.arima_model.fit()
-        # ARIMA 預測
-        #arima_forecast = self.arima_model.forecast(steps=self.test_volume)
-        # 計算 ARIMA 誤差
-        #arima_errors = self.valid_data - arima_forecast
 
         # 訓練 XGBoost 模型
         # #計算 ARIMA 誤差，並在數據集中添加
@@ -136,20 +125,9 @@ class ARIMAXGBoostModel:
 
     def predict_future(self, predict_date):
         '''預測未來 1 個月'''
-        FUTURE_STEPS = 1            # 預測未來 3 個月
-        # 使用最佳參數進行 ARIMA 預測，延伸到未來3個月
+        FUTURE_STEPS = 1
+        # 使用最佳參數進行 ARIMA 預測
         arima_forecast = self.arima_model.forecast(steps=FUTURE_STEPS)
-
-        # # 將 XGBoost 模型輸出對應的特徵集延伸
-        # X_new = pd.DataFrame({
-        #     'lag1': self.data['order'].shift(1),
-        #     'lag2': self.data['order'].shift(2),
-        #     'lag3': self.data['order'].shift(3),
-        #     'lag4': self.data['order'].shift(4),
-        # })
-
-        # # 準備未來3個月的特徵數據
-        # X_new = X_new[-FUTURE_STEPS:].fillna(0)  # 如果有缺失值，這裡用0填補
 
         feature_data = predict_data(predict_date, self.feature_cols)
         # 使用最佳參數進行 XGBoost 預測誤差的校正
@@ -169,7 +147,7 @@ def predict(train_data, valid_data, feature_cols, predict_date):
     # 訓練模型
     mae = model.train_model()
 
-    # 預測未來 3 個月
+    # 預測
     future_prediction = model.predict_future(predict_date)
 
     return future_prediction.item(), mae

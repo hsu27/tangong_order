@@ -2,6 +2,7 @@ import requests
 import json
 import os
 import pandas as pd
+from data_preprocess import *
 
 
 output_folder = './data/'
@@ -157,10 +158,12 @@ def get_data_main():
                 "weight": weight
             })
 
-        # 將 unified_details 儲存為 JSON 檔案
-        with open(output_folder+"unified_details.json", 'w') as json_file:
-            json.dump(unified_details, json_file, indent=4)
-        print(f"已儲存 unified_details")
+            break
+
+        # # 將 unified_details 儲存為 JSON 檔案
+        # with open(output_folder+"unified_details.json", 'w') as json_file:
+        #     json.dump(unified_details, json_file, indent=4)
+        # print(f"已儲存 unified_details")
 
         # 將統一格式的資料直接轉換為 DataFrame
         df = pd.DataFrame(unified_details)
@@ -174,10 +177,6 @@ def get_data_main():
 
         # 處理每個分組
         for group_keys, group_data in groups:
-            # 根據分組的鍵生成文件名
-            filename = "_".join(map(str, group_keys)) + ".csv"
-            filename = sanitize_filename(filename)
-            filepath = os.path.join(output_folder, filename)
 
             # 檢查分組的資料量是否大於 100
             if len(group_data) > 100:
@@ -212,31 +211,38 @@ def get_data_main():
                 how='left'
             )
             
-            # 用0填充缺失值
-            result_df['order'] = result_df['weight'].fillna(0)
+            # # 用0填充缺失值
+            # result_df['order'] = result_df['weight'].fillna(0)
             
-            # 只保留需要的列
-            result_df = result_df[['date', 'order']]
+            # # 只保留需要的列
+            # result_df = result_df[['date', 'order']]
             
-            # 將日期格式化為YYYY-MM
-            result_df['date'] = result_df['date'].dt.strftime('%Y-%m')
+            # # 將日期格式化為YYYY-MM
+            # result_df['date'] = result_df['date'].dt.strftime('%Y-%m')
 
-            # 回傳 result(dataframe)，品項名稱、客戶代碼、材質群組、尺寸1、尺寸2            
+            #
+            result_df = pd.read_excel('data/data_CT12000.xlsx')
+            result_df['date'] = pd.to_datetime(result_df['date'])
+
+            # # 回傳 result(dataframe)，品項名稱、客戶代碼、材質群組、尺寸1、尺寸2            
+            # data = {
+            #     "result_df": result_df.to_json(orient="split"),  # 將 DataFrame 序列化
+            #     "item_type": item_type,
+            #     "cus_code": cus_code,
+            #     "mg": mg,
+            #     "sp_size": sp_size,
+            #     "sp_size2": sp_size2,
+            # }
+
             data = {
                 "result_df": result_df.to_json(orient="split"),  # 將 DataFrame 序列化
-                # "result_df": result_df,
-                "item_type": item_type,
-                "cus_code": cus_code,
-                "mg": mg,
-                "sp_size": sp_size,
-                "sp_size2": sp_size2,
+                "item_type": "A",
+                "cus_code": "C123",
+                "mg": "MG01",
+                "sp_size": 15.2,
+                "sp_size2": 10.5,
             }
-
             return data
-
-            # # 儲存為CSV文件
-            # result_df.to_csv(filepath, index=False, encoding='utf-8-sig')
-            # print(f"已儲存: {filepath}")
 
     except requests.exceptions.RequestException as e:
         print(f"HTTP 請求錯誤：{e}")

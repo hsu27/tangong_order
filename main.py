@@ -73,21 +73,11 @@ def get_api_data(request: Request):
 
 # 預測端點
 @app.post("/predict", response_class=JSONResponse)
-def predict(request: Request, file: Optional[UploadFile] = File(None), data: GetItem = Depends(None)):
+def predict(request: Request, file: Optional[UploadFile] = File(None), model: str = Form(...), data: GetItem = Depends(None)):
 # def predict(request: Request, file: Optional[UploadFile] = File(None), model: str = Form(...), data: Optional[dict] = Body(None)):
-    # print(json_data)
-    # print(type(json_data))
-    # print(json_data['result_df'])
-    # print(json_data['item_type'])
-    # print(json_data['cus_code'])
-    # print(json_data['mg'])
-    # print(json_data['sp_size'])
-    # print(json_data['sp_size2'])
-    # print(json_data['model'])
+    api_mode = False
     
-    if file == None and data == None:
-        raise HTTPException(status_code=400, detail="上傳的格式錯誤")
-    elif file != None:
+    if file != None:
         if not file.filename.endswith('.xlsx') and not file.filename.endswith('.csv'):
             raise HTTPException(status_code=400, detail="上傳的格式錯誤")
 
@@ -102,6 +92,7 @@ def predict(request: Request, file: Optional[UploadFile] = File(None), data: Get
             elif file.filename.endswith('.csv'):
                 # 從 API 取得 csv 資料
                 raw_df = process_csv(file)
+            api_mode = False
         else:
             json_data = jsonable_encoder(data)
             model = json_data["model"]
@@ -114,8 +105,16 @@ def predict(request: Request, file: Optional[UploadFile] = File(None), data: Get
             raw_df = pd.read_json(json_data["result_df"], orient="split")  # 還原 DataFrame
             # 取得預測日期
             predict_date = post.get_predict_date()
+            api_mode = True
 
+        # 如果資料量小於兩年，則不進行預測
+        if len(raw_df) < 24:
+            raise HTTPException(status_code=500, detail=f"訓練資料過少，需要至少兩年")
+        
         df, scaled_data, nonScaled_data, scaler = preprocess_data(raw_df, 3)
+
+        print(df,df.columns)
+
         # 訓練集跟驗證集
         train_data, valid_data = split_x_y(df)
 
@@ -139,15 +138,15 @@ def predict(request: Request, file: Optional[UploadFile] = File(None), data: Get
         max_step = 3
         # 分別計算 skip_step = 0, 1, 2 的結果
         for skip_step in range(3):
+            # api
+            if api_mode:
+                true_value = 0
+                date = predict_date[skip_step]
             # web
-            if data == None:
+            else:
                 # 預測日期為原始數據最後一筆日期後
                 date = raw_df['date'].iloc[-(max_step-skip_step)]
                 true_value = raw_df[raw_df['date'] == date]['order'].iloc[0]
-            # api
-            else:
-                true_value = 0
-                date = predict_date[skip_step]
 
             # 各模型傳入參數
             model_params = {
@@ -190,10 +189,7 @@ def predict(request: Request, file: Optional[UploadFile] = File(None), data: Get
                     log_df = log_append(log_df, model, date.strftime("%Y-%m"), raw_predict, true_value, mae)
             
             # web
-            if data == None:
-                result_data.append({"date": date.strftime("%Y-%m"), "best_model": best_model, "value": predicted_value[best_model]})
-            # api
-            else:
+            if api_mode:
                 result_data.append({
                     "date": date.strftime("%Y-%m"),
                     "value": predicted_value[best_model],
@@ -204,12 +200,13 @@ def predict(request: Request, file: Optional[UploadFile] = File(None), data: Get
                     "sp_size2": sp_size2,
                     "best_model": best_model
                 })
-
+            # api
+            else:
+                result_data.append({"date": date.strftime("%Y-%m"), "best_model": best_model, "value": predicted_value[best_model]})
 
         log_save(log_df, (file.filename).removesuffix(".xlsx").split('_'))
-
         
-        if data != None:
+        if api_mode:
             # post data to API
             post.post_data(result_data)
         # 返回 JSON 格式的結果結構
